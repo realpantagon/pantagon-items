@@ -157,35 +157,35 @@ export default function WeightEntriesList({ weights, formatDate }: WeightEntries
         })}
       </div>
 
-      {/* Pagination Controls */}
+      {/* Pagination Controls - Minimized */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 mt-6 pt-4 border-t border-gray-700/50">
+        <div className="flex items-center justify-center gap-1 mt-3 pt-2">
           {/* Previous Button */}
           <button
             onClick={goToPreviousPage}
             disabled={currentPage === 1}
-            className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+            className={`px-2 py-1 rounded text-xs font-medium ${
               currentPage === 1
-                ? "text-gray-500 cursor-not-allowed"
-                : "text-gray-300 hover:text-white hover:bg-gray-700/50"
+                ? "text-gray-600 cursor-not-allowed"
+                : "text-gray-400 hover:text-white"
             }`}
           >
-            ← Previous
+            ←
           </button>
 
           {/* Page Numbers */}
-          <div className="flex items-center gap-1 mx-4">
+          <div className="flex items-center gap-1">
             {getPageNumbers().map((pageNum, index) => (
               <div key={index}>
                 {pageNum === -1 ? (
-                  <span className="px-2 py-1 text-gray-500">...</span>
+                  <span className="px-1 text-xs text-gray-600">...</span>
                 ) : (
                   <button
                     onClick={() => goToPage(pageNum)}
-                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                    className={`px-2 py-1 rounded text-xs font-medium ${
                       currentPage === pageNum
-                        ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/20"
-                        : "text-gray-300 hover:text-white hover:bg-gray-700/50"
+                        ? "bg-emerald-500/80 text-white"
+                        : "text-gray-400 hover:text-white"
                     }`}
                   >
                     {pageNum}
@@ -199,13 +199,13 @@ export default function WeightEntriesList({ weights, formatDate }: WeightEntries
           <button
             onClick={goToNextPage}
             disabled={currentPage === totalPages}
-            className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+            className={`px-2 py-1 rounded text-xs font-medium ${
               currentPage === totalPages
-                ? "text-gray-500 cursor-not-allowed"
-                : "text-gray-300 hover:text-white hover:bg-gray-700/50"
+                ? "text-gray-600 cursor-not-allowed"
+                : "text-gray-400 hover:text-white"
             }`}
           >
-            Next →
+            →
           </button>
         </div>
       )}
