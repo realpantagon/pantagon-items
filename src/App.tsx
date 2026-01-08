@@ -38,6 +38,19 @@ function App() {
           </ItemsAppLayout>
         } />
 
+        {/* Items App Routes (alternative path) */}
+        <Route path="/items/*" element={
+          <ItemsAppLayout>
+            <Routes>
+              <Route path="/" element={<ItemsDashboard />} />
+              <Route path="/list" element={<ItemsList />} />
+              <Route path="/new" element={<AddItem />} />
+              <Route path="/:id" element={<ItemDetails />} />
+              <Route path="/:id/edit" element={<EditItem />} />
+            </Routes>
+          </ItemsAppLayout>
+        } />
+
         {/* Weight App Routes */}
         <Route path="/weight-app/*" element={
           <WeightAppLayout>
