@@ -1,6 +1,6 @@
 // Pages
 export { default as Dashboard } from './pages/Dashboard';
-export { default as ItemsList } from './pages/ItemsList';
+
 export { default as ItemDetails } from './pages/ItemDetails';
 export { default as AddItem } from './pages/AddItem';
 export { default as EditItem } from './pages/EditItem';

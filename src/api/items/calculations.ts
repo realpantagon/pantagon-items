@@ -74,7 +74,7 @@ export function enrichItemWithMetrics(item: PantagonItem): ItemWithMetrics {
  */
 export function calculateDailyBurnRate(items: PantagonItem[]): number {
   return items
-    .filter(item => item.status !== 'sold') // Exclude sold items
+    .filter(item => item.status !== 'sold' && item.daily_burn) // Exclude sold items and respect daily_burn flag
     .reduce((total, item) => {
       const daysHeld = calculateDaysHeld(item.buy_date, item.sell_date);
       const realCost = calculateRealCost(item.buy_price, item.extra_cost);
@@ -83,12 +83,28 @@ export function calculateDailyBurnRate(items: PantagonItem[]): number {
 }
 
 /**
+ * Calculate total profit from sold items
+ */
+export function calculateTotalProfit(items: PantagonItem[]): number {
+  return items
+    .filter(item => item.status === 'sold' && item.sell_price !== null)
+    .reduce((total, item) => {
+      return total + (item.sell_price! - item.buy_price);
+    }, 0);
+}
+
+/**
  * Format currency to Thai Baht
  */
-export function formatCurrency(amount: number): string {
+/**
+ * Format currency to Thai Baht
+ */
+export function formatCurrency(amount: number, maxDecimals: number = 2): string {
   return new Intl.NumberFormat('th-TH', {
     style: 'currency',
     currency: 'THB',
+    maximumFractionDigits: maxDecimals,
+    minimumFractionDigits: maxDecimals === 0 ? 0 : 2,
   }).format(amount);
 }
 

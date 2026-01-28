@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../../shared/utils/supabase';
-import Card from '../../../shared/components/Card';
+
 import Button from '../../../shared/components/Button';
 import Input from '../../../shared/components/Input';
 import Select from '../../../shared/components/Select';
@@ -27,6 +27,7 @@ export default function EditItem() {
     warranty_expire_date: '',
     reason_to_sell: '',
     note: '',
+    daily_burn: true,
   });
 
   useEffect(() => {
@@ -60,6 +61,7 @@ export default function EditItem() {
           warranty_expire_date: data.warranty_expire_date || '',
           reason_to_sell: data.reason_to_sell || '',
           note: data.note || '',
+          daily_burn: data.daily_burn !== false, // Default to true if null/undefined
         });
       }
     } catch (error) {
@@ -70,8 +72,12 @@ export default function EditItem() {
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value, type } = e.target;
+    // Handle checkbox
+    const newValue = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
+
+    setFormData(prev => ({ ...prev, [name]: newValue }));
+
     // Clear error when user types
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
@@ -121,6 +127,7 @@ export default function EditItem() {
           warranty_expire_date: formData.warranty_expire_date || null,
           reason_to_sell: formData.reason_to_sell.trim() || null,
           note: formData.note.trim() || null,
+          daily_burn: formData.daily_burn,
           updated_at: new Date().toISOString(),
         })
         .eq('id', id);
@@ -147,112 +154,135 @@ export default function EditItem() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Edit Item</h1>
+        <h1 className="text-3xl font-bold text-white">Edit Item</h1>
         <Button variant="secondary" onClick={() => navigate(`/items-app/${id}`)}>
           Cancel
         </Button>
       </div>
 
       <form onSubmit={handleSubmit}>
-        <Card>
-          <div className="space-y-4">
-            {/* Basic Information */}
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Basic Information</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input
-                  label="Name *"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  error={errors.name}
-                  placeholder="e.g., iPhone 14 Pro"
-                />
+        <div className="bg-gray-800/40 border border-gray-700/50 rounded-xl p-4 space-y-4">
+          {/* Basic Information */}
+          <div>
+            <h2 className="text-lg font-semibold text-white mb-3">Basic Information</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input
+                label="Name *"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                error={errors.name}
+                placeholder="e.g., iPhone 14 Pro"
+                className="bg-[#1a1a1a] border-gray-700 text-white"
+              />
 
-                <Input
-                  label="Category"
-                  name="category"
-                  value={formData.category}
-                  onChange={handleChange}
-                  placeholder="e.g., Electronics"
-                />
+              <Input
+                label="Category"
+                name="category"
+                value={formData.category}
+                onChange={handleChange}
+                placeholder="e.g., Electronics"
+                className="bg-[#1a1a1a] border-gray-700 text-white"
+              />
 
-                <Input
-                  label="Group Name"
-                  name="group_name"
-                  value={formData.group_name}
-                  onChange={handleChange}
-                  placeholder="e.g., Smartphones"
-                />
+              <Input
+                label="Group Name"
+                name="group_name"
+                value={formData.group_name}
+                onChange={handleChange}
+                placeholder="e.g., Smartphones"
+                className="bg-[#1a1a1a] border-gray-700 text-white"
+              />
 
-                <Select
-                  label="Status *"
-                  name="status"
-                  value={formData.status}
-                  onChange={handleChange}
-                  options={[
-                    { value: 'owned', label: 'Owned' },
-                    { value: 'sold', label: 'Sold' },
-                  ]}
-                />
-              </div>
+              <Select
+                label="Status *"
+                name="status"
+                value={formData.status}
+                onChange={handleChange}
+                options={[
+                  { value: 'owned', label: 'Owned' },
+                  { value: 'sold', label: 'Sold' },
+                ]}
+                className="bg-[#1a1a1a] border-gray-700 text-white"
+              />
             </div>
+          </div>
 
-            {/* Purchase Information */}
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Purchase Information</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input
-                  label="Buy Date *"
-                  name="buy_date"
-                  type="date"
-                  value={formData.buy_date}
-                  onChange={handleChange}
-                  error={errors.buy_date}
-                />
+          {/* Purchase Information */}
+          <div>
+            <h2 className="text-lg font-semibold text-white mb-3">Purchase Information</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input
+                label="Buy Date *"
+                name="buy_date"
+                type="date"
+                value={formData.buy_date}
+                onChange={handleChange}
+                error={errors.buy_date}
+                className="bg-[#1a1a1a] border-gray-700 text-white"
+              />
 
-                <Input
-                  label="Buy Price * (฿)"
-                  name="buy_price"
-                  type="number"
-                  step="0.01"
-                  value={formData.buy_price}
-                  onChange={handleChange}
-                  error={errors.buy_price}
-                  placeholder="0.00"
-                />
+              <Input
+                label="Buy Price * (฿)"
+                name="buy_price"
+                type="number"
+                step="0.01"
+                value={formData.buy_price}
+                onChange={handleChange}
+                error={errors.buy_price}
+                placeholder="0.00"
+                className="bg-[#1a1a1a] border-gray-700 text-white"
+              />
 
-                <Input
-                  label="Extra Cost (฿)"
-                  name="extra_cost"
-                  type="number"
-                  step="0.01"
-                  value={formData.extra_cost}
-                  onChange={handleChange}
-                  placeholder="0.00"
-                />
+              <Input
+                label="Extra Cost (฿)"
+                name="extra_cost"
+                type="number"
+                step="0.01"
+                value={formData.extra_cost}
+                onChange={handleChange}
+                placeholder="0.00"
+                className="bg-[#1a1a1a] border-gray-700 text-white"
+              />
 
-                <Input
-                  label="Purchase Source"
-                  name="purchase_source"
-                  value={formData.purchase_source}
-                  onChange={handleChange}
-                  placeholder="e.g., Apple Store"
-                />
+              <Input
+                label="Purchase Source"
+                name="purchase_source"
+                value={formData.purchase_source}
+                onChange={handleChange}
+                placeholder="e.g., Apple Store"
+                className="bg-[#1a1a1a] border-gray-700 text-white"
+              />
 
-                <Input
-                  label="Warranty Expire Date"
-                  name="warranty_expire_date"
-                  type="date"
-                  value={formData.warranty_expire_date}
+              <div className="col-span-2 flex items-center gap-2 pt-2">
+                <input
+                  type="checkbox"
+                  id="daily_burn"
+                  name="daily_burn"
+                  checked={formData.daily_burn}
                   onChange={handleChange}
+                  className="w-4 h-4 rounded border-gray-700 bg-gray-900/60 text-blue-600 focus:ring-blue-500"
                 />
+                <label htmlFor="daily_burn" className="text-sm font-medium text-gray-300">
+                  Include in Daily Burn calculation
+                </label>
               </div>
-            </div>
 
-            {/* Sell Information */}
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Sell Information</h2>
+              <Input
+                label="Warranty Expire Date"
+                name="warranty_expire_date"
+                type="date"
+                value={formData.warranty_expire_date}
+                onChange={handleChange}
+                className="bg-[#1a1a1a] border-gray-700 text-white"
+              />
+            </div>
+          </div>
+
+          {/* Conditional Sell Information */}
+          {formData.status === 'sold' && (
+            <div className="bg-gray-900/30 p-3 rounded-lg border border-gray-700/30">
+              <h2 className="text-lg font-semibold text-white mb-3">Sell Information</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
                   label="Sell Date"
@@ -260,6 +290,7 @@ export default function EditItem() {
                   type="date"
                   value={formData.sell_date}
                   onChange={handleChange}
+                  className="bg-[#1a1a1a] border-gray-700 text-white"
                 />
 
                 <Input
@@ -271,11 +302,12 @@ export default function EditItem() {
                   onChange={handleChange}
                   error={errors.sell_price}
                   placeholder="0.00"
+                  className="bg-[#1a1a1a] border-gray-700 text-white"
                 />
               </div>
 
               <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-gray-300 mb-1">
                   Reason to Sell
                 </label>
                 <textarea
@@ -283,48 +315,47 @@ export default function EditItem() {
                   value={formData.reason_to_sell}
                   onChange={handleChange}
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
+                  className="w-full px-3 py-2 border border-gray-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-[#1a1a1a] text-white placeholder-gray-500"
                   placeholder="Why are you selling this item?"
                 />
               </div>
             </div>
+          )}
 
-            {/* Notes */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Note
-              </label>
-              <textarea
-                name="note"
-                value={formData.note}
-                onChange={handleChange}
-                rows={4}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
-                placeholder="Additional notes..."
-              />
-            </div>
-
-            <div className="flex justify-end gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => navigate(`/items-app/${id}`)}
-                className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600"
-              >
-                Cancel
-              </Button>
-
-              <Button
-                type="submit"
-                disabled={loading}
-                className="bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
-              >
-                {loading ? 'Updating...' : 'Update Item'}
-              </Button>
-
-            </div>
+          {/* Notes */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              Note
+            </label>
+            <textarea
+              name="note"
+              value={formData.note}
+              onChange={handleChange}
+              rows={4}
+              className="w-full px-3 py-2 border border-gray-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-[#1a1a1a] text-white placeholder-gray-500"
+              placeholder="Additional notes..."
+            />
           </div>
-        </Card>
+
+          <div className="flex justify-end gap-2 pt-4 border-t border-gray-700/50">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => navigate(`/items-app/${id}`)}
+              className="bg-gray-800 text-gray-300 hover:bg-gray-700 border-gray-700"
+            >
+              Cancel
+            </Button>
+
+            <Button
+              type="submit"
+              disabled={loading}
+              className="bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed border-0"
+            >
+              {loading ? 'Updating...' : 'Update Item'}
+            </Button>
+          </div>
+        </div>
       </form>
     </div>
   );

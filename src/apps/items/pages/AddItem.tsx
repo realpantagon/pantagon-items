@@ -20,10 +20,13 @@ export default function AddItem() {
     buy_date: format(new Date(), 'yyyy-MM-dd'),
     buy_price: '',
     extra_cost: '0',
+    sell_date: '',
+    sell_price: '',
     purchase_source: '',
     status: 'owned',
     warranty_expire_date: '',
     note: '',
+    daily_burn: true,
   });
 
   useEffect(() => {
@@ -48,8 +51,11 @@ export default function AddItem() {
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value, type } = e.target;
+    // Handle checkbox
+    const newValue = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
+
+    setFormData(prev => ({ ...prev, [name]: newValue }));
     // Clear error when user types
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
@@ -93,6 +99,9 @@ export default function AddItem() {
           status: formData.status,
           warranty_expire_date: formData.warranty_expire_date || null,
           note: formData.note.trim() || null,
+          daily_burn: formData.daily_burn,
+          sell_date: formData.status === 'sold' && formData.sell_date ? formData.sell_date : null,
+          sell_price: formData.status === 'sold' && formData.sell_price ? parseFloat(formData.sell_price) : null,
         }])
         .select()
         .single();
@@ -212,6 +221,44 @@ export default function AddItem() {
               ]}
               className="bg-[#1a1a1a] border-gray-700 text-white"
             />
+          </div>
+
+          {/* Conditional Sell Fields */}
+          {formData.status === 'sold' && (
+            <div className="grid grid-cols-2 gap-3 bg-gray-900/30 p-3 rounded-lg border border-gray-700/30">
+              <Input
+                label="Sell Date"
+                name="sell_date"
+                type="date"
+                value={formData.sell_date}
+                onChange={handleChange}
+                className="bg-[#1a1a1a] border-gray-700 text-white"
+              />
+              <Input
+                label="Sell Price (฿)"
+                name="sell_price"
+                type="number"
+                step="0.01"
+                value={formData.sell_price}
+                onChange={handleChange}
+                placeholder="0.00"
+                className="bg-[#1a1a1a] border-gray-700 text-white"
+              />
+            </div>
+          )}
+
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="daily_burn"
+              name="daily_burn"
+              checked={formData.daily_burn}
+              onChange={handleChange}
+              className="w-4 h-4 rounded border-gray-700 bg-gray-900/60 text-blue-600 focus:ring-blue-500"
+            />
+            <label htmlFor="daily_burn" className="text-sm font-medium text-gray-300">
+              Include in Daily Burn calculation
+            </label>
           </div>
 
           <Input

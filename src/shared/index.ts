@@ -9,5 +9,4 @@ export { default as Select } from './components/Select';
 export * from './utils/helpers';
 export { supabase } from './utils/supabase';
 
-// Shared Layouts
-export { default as PowerAppLayout } from './layouts/PowerAppLayout';
+

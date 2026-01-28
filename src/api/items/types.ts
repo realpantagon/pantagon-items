@@ -13,6 +13,7 @@ export interface PantagonItem {
   warranty_expire_date: string | null;
   reason_to_sell: string | null;
   note: string | null;
+  daily_burn: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -30,6 +31,7 @@ export interface DashboardStats {
   owned_items: number;
   sold_items: number;
   daily_burn_rate: number;
+  total_profit: number;
 }
 
 export interface GroupBurnRate {
