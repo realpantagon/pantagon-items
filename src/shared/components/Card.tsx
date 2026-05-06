@@ -4,14 +4,19 @@ import { cn } from '../utils/helpers';
 interface CardProps {
   children: ReactNode;
   className?: string;
+  style?: React.CSSProperties;
 }
 
-export default function Card({ children, className }: CardProps) {
+export default function Card({ children, className, style }: CardProps) {
   return (
-    <div className={cn(
-      'bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6',
-      className
-    )}>
+    <div
+      className={cn('holo-card corner-bracket', className)}
+      style={{
+        padding: '20px',
+        borderRadius: '2px',
+        ...style,
+      }}
+    >
       {children}
     </div>
   );

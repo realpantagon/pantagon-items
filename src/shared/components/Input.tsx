@@ -6,28 +6,78 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   error?: string;
 }
 
-export default function Input({ label, error, className, ...props }: InputProps) {
+export default function Input({ label, error, className, id, ...props }: InputProps) {
+  const inputId = id || (label ? label.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') : undefined);
+
   return (
-    <div className="w-full">
+    <div style={{ width: '100%' }}>
       {label && (
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        <label
+          htmlFor={inputId}
+          className="hud-label"
+          style={{ display: 'block', marginBottom: '6px' }}
+        >
           {label}
         </label>
       )}
-      <input
-        className={cn(
-          'w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500',
-          error 
-            ? 'border-red-500 dark:border-red-500' 
-            : 'border-gray-300 dark:border-gray-600',
-          'bg-white dark:bg-gray-700 text-gray-900 dark:text-white',
-          'placeholder-gray-400 dark:placeholder-gray-500',
-          className
-        )}
-        {...props}
-      />
+      <div style={{ position: 'relative' }}>
+        {/* Left accent bar */}
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            bottom: 0,
+            left: 0,
+            width: '2px',
+            background: error ? 'var(--soft-red)' : 'rgba(255,43,43,0.4)',
+          }}
+        />
+        <input
+          id={inputId}
+          className={cn(className)}
+          style={{
+            width: '100%',
+            paddingLeft: '14px',
+            paddingRight: '12px',
+            paddingTop: '10px',
+            paddingBottom: '10px',
+            background: 'rgba(8,8,8,0.9)',
+            border: `1px solid ${error ? 'rgba(255,90,90,0.5)' : 'rgba(255,43,43,0.15)'}`,
+            borderLeft: 'none',
+            color: 'var(--text-primary)',
+            fontFamily: 'var(--font-tech)',
+            fontSize: '14px',
+            letterSpacing: '0.04em',
+            outline: 'none',
+            transition: 'all 0.2s ease',
+            boxSizing: 'border-box',
+            borderRadius: '0 2px 2px 0',
+          }}
+          onFocus={e => {
+            (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,43,43,0.5)';
+            (e.currentTarget as HTMLElement).style.boxShadow = '0 0 0 1px rgba(255,43,43,0.2), 0 0 16px rgba(255,43,43,0.1)';
+            (e.currentTarget as HTMLElement).style.background = 'rgba(12,12,12,0.95)';
+          }}
+          onBlur={e => {
+            (e.currentTarget as HTMLElement).style.borderColor = error ? 'rgba(255,90,90,0.5)' : 'rgba(255,43,43,0.15)';
+            (e.currentTarget as HTMLElement).style.boxShadow = 'none';
+            (e.currentTarget as HTMLElement).style.background = 'rgba(8,8,8,0.9)';
+          }}
+          {...props}
+        />
+      </div>
       {error && (
-        <p className="mt-1 text-sm text-red-600 dark:text-red-400">{error}</p>
+        <p
+          className="font-display"
+          style={{
+            marginTop: '4px',
+            fontSize: '9px',
+            letterSpacing: '0.1em',
+            color: 'var(--soft-red)',
+          }}
+        >
+          ⚠ {error}
+        </p>
       )}
     </div>
   );

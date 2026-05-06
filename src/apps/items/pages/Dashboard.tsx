@@ -4,6 +4,97 @@ import type { DashboardStats, PantagonItem } from '../../../api/items/types';
 import { calculateDailyBurnRate, calculateTotalProfit, formatCurrency } from '../../../api/items/calculations';
 import ItemCard from '../../items/components/ItemCard';
 
+function StatCard({
+  label,
+  value,
+  accent,
+  icon,
+  delay = 0,
+}: {
+  label: string;
+  value: string;
+  accent: string;
+  icon: React.ReactNode;
+  delay?: number;
+}) {
+  return (
+    <div
+      style={{
+        background: 'rgba(11,11,11,0.85)',
+        backdropFilter: 'blur(12px)',
+        border: `1px solid ${accent}30`,
+        borderTop: `1px solid ${accent}60`,
+        padding: '14px',
+        position: 'relative',
+        overflow: 'hidden',
+        animation: `slide-up 0.5s ease both`,
+        animationDelay: `${delay}s`,
+      }}
+    >
+      {/* Corner decoration */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 0,
+          right: 0,
+          width: '20px',
+          height: '20px',
+          borderTop: `1px solid ${accent}50`,
+          borderRight: `1px solid ${accent}50`,
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          width: '20px',
+          height: '20px',
+          borderBottom: `1px solid ${accent}30`,
+          borderLeft: `1px solid ${accent}30`,
+        }}
+      />
+
+      {/* Top energy line */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: '1px',
+          background: `linear-gradient(90deg, transparent, ${accent}, transparent)`,
+          animation: 'energy-line 5s ease-in-out infinite',
+        }}
+      />
+
+      {/* Content */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '10px' }}>
+        <div
+          className="hud-label"
+          style={{ fontSize: '8px', letterSpacing: '0.15em' }}
+        >
+          {label}
+        </div>
+        <div style={{ color: accent, opacity: 0.7 }}>{icon}</div>
+      </div>
+      <div
+        className="font-display"
+        style={{
+          fontSize: '20px',
+          fontWeight: 700,
+          color: accent,
+          textShadow: `0 0 12px ${accent}60`,
+          letterSpacing: '0.05em',
+          lineHeight: 1,
+        }}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [items, setItems] = useState<PantagonItem[]>([]);
@@ -17,41 +108,23 @@ export default function Dashboard() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
-
-  useEffect(() => {
-    filterItems();
-  }, [items, searchTerm, selectedStatus, selectedTag]);
+  useEffect(() => { fetchDashboardData(); }, []);
+  useEffect(() => { filterItems(); }, [items, searchTerm, selectedStatus, selectedTag]);
 
   const filterItems = () => {
     let filtered = [...items];
-
-    if (searchTerm) {
-      filtered = filtered.filter(item =>
-        item.name.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    if (selectedStatus) {
-      filtered = filtered.filter(item => item.status === selectedStatus);
-    }
-
-    if (selectedTag) {
-      filtered = filtered.filter(item => item.tags && item.tags.includes(selectedTag));
-    }
-
+    if (searchTerm) filtered = filtered.filter(i => i.name.toLowerCase().includes(searchTerm.toLowerCase()));
+    if (selectedStatus) filtered = filtered.filter(i => i.status === selectedStatus);
+    if (selectedTag) filtered = filtered.filter(i => i.tags && i.tags.includes(selectedTag));
     setFilteredItems(filtered);
     setCurrentPage(1);
   };
 
   const calculateItemDailyBurn = (item: PantagonItem) => {
     const daysHeld = item.sell_date
-      ? Math.max(1, Math.floor((new Date(item.sell_date).getTime() - new Date(item.buy_date).getTime()) / (1000 * 60 * 60 * 24)))
-      : Math.max(1, Math.floor((Date.now() - new Date(item.buy_date).getTime()) / (1000 * 60 * 60 * 24)));
-    const realCost = item.buy_price + item.extra_cost;
-    return realCost / daysHeld;
+      ? Math.max(1, Math.floor((new Date(item.sell_date).getTime() - new Date(item.buy_date).getTime()) / 86400000))
+      : Math.max(1, Math.floor((Date.now() - new Date(item.buy_date).getTime()) / 86400000));
+    return (item.buy_price + item.extra_cost) / daysHeld;
   };
 
   const fetchDashboardData = async () => {
@@ -60,35 +133,18 @@ export default function Dashboard() {
         .from('Pantagon_items')
         .select('*')
         .order('buy_date', { ascending: false });
-
       if (error) throw error;
-
       if (items) {
-        // Calculate stats
-        const totalItems = items.length;
-        const ownedItems = items.filter(item => item.status === 'owned').length;
-        const soldItems = items.filter(item => item.status === 'sold').length;
-        const dailyBurnRate = calculateDailyBurnRate(items);
-        const totalProfit = calculateTotalProfit(items);
-
         setStats({
-          total_items: totalItems,
-          owned_items: ownedItems,
-          sold_items: soldItems,
-          daily_burn_rate: dailyBurnRate,
-          total_profit: totalProfit,
+          total_items: items.length,
+          owned_items: items.filter(i => i.status === 'owned').length,
+          sold_items: items.filter(i => i.status === 'sold').length,
+          daily_burn_rate: calculateDailyBurnRate(items),
+          total_profit: calculateTotalProfit(items),
         });
-
-        // Store items
         setItems(items);
         setFilteredItems(items);
-
-        // Get unique tags
-        const tags = Array.from(new Set(
-          items
-            .flatMap(item => item.tags || [])
-            .filter(Boolean)
-        )) as string[];
+        const tags = Array.from(new Set(items.flatMap(i => i.tags || []).filter(Boolean))) as string[];
         setAllTags(tags.sort());
       }
     } catch (error) {
@@ -98,172 +154,409 @@ export default function Dashboard() {
     }
   };
 
-  const paginatedItems = filteredItems.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
+  const paginatedItems = filteredItems.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
   const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-gray-500 dark:text-gray-400">Loading...</div>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60vh', gap: '16px' }}>
+        <div
+          style={{
+            width: '40px',
+            height: '40px',
+            border: '1px solid rgba(255,43,43,0.3)',
+            borderTop: '1px solid var(--neon-red)',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+          }}
+        />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        <div className="hud-label" style={{ letterSpacing: '0.2em' }}>LOADING SYSTEM DATA...</div>
       </div>
     );
   }
 
+  const profit = stats?.total_profit || 0;
+  const profitColor = profit >= 0 ? '#00E676' : '#FF5A5A';
+
   return (
-    <div className="space-y-6 pb-20">
-      {/* Stats Grid - Premium Cards */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700/50 rounded-2xl p-4 shadow-lg shadow-black/20">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="p-1.5 bg-blue-500/10 rounded-lg text-blue-400">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
-            </span>
-            <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Total</span>
-          </div>
-          <div className="text-2xl font-bold text-white tracking-tight">
-            {stats?.total_items || 0}
-          </div>
-        </div>
+    <div style={{ paddingBottom: '80px' }}>
 
-        <div className="bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700/50 rounded-2xl p-4 shadow-lg shadow-black/20">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="p-1.5 bg-emerald-500/10 rounded-lg text-emerald-400">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-            </span>
-            <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Owned</span>
-          </div>
-          <div className="text-2xl font-bold text-emerald-400 tracking-tight">
-            {stats?.owned_items || 0}
-          </div>
+      {/* ── Page Header ── */}
+      <div style={{ marginBottom: '20px', paddingTop: '8px', animation: 'slide-up 0.4s ease both' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
+          <div style={{ height: '1px', width: '20px', background: 'var(--neon-red)', boxShadow: '0 0 6px var(--neon-red)' }} />
+          <span className="hud-label" style={{ fontSize: '8px', color: 'var(--neon-red)', letterSpacing: '0.25em' }}>
+            ASSET MANAGEMENT SYSTEM v2.4
+          </span>
+          <div style={{ flex: 1, height: '1px', background: 'linear-gradient(90deg, rgba(255,43,43,0.4), transparent)' }} />
         </div>
-
-        <div className="bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700/50 rounded-2xl p-4 shadow-lg shadow-black/20">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="p-1.5 bg-purple-500/10 rounded-lg text-purple-400">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            </span>
-            <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Profit</span>
-          </div>
-          <div className={`text-2xl font-bold tracking-tight ${(stats?.total_profit || 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-            {stats ? formatCurrency(stats.total_profit, 0) : '฿0'}
-          </div>
-        </div>
-
-        <div className="bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700/50 rounded-2xl p-4 shadow-lg shadow-black/20">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="p-1.5 bg-red-500/10 rounded-lg text-red-400">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z" /></svg>
-            </span>
-            <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Daily Burn</span>
-          </div>
-          <div className="text-2xl font-bold text-red-400 tracking-tight">
-            {stats ? formatCurrency(stats.daily_burn_rate) : '฿0'}
-          </div>
-        </div>
+        <h1
+          className="font-display"
+          style={{
+            fontSize: '22px',
+            fontWeight: 800,
+            letterSpacing: '0.1em',
+            color: 'var(--text-primary)',
+            margin: 0,
+          }}
+        >
+          SYSTEM OVERVIEW
+        </h1>
       </div>
 
-      {/* Items List Section */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between px-1">
-          <h2 className="text-lg font-bold text-white">Recent Items</h2>
+      {/* ── Stats Grid ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '20px' }}>
+        <StatCard
+          label="TOTAL ASSETS"
+          value={String(stats?.total_items || 0)}
+          accent="#00ffff"
+          delay={0.05}
+          icon={
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="square" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+            </svg>
+          }
+        />
+        <StatCard
+          label="ACTIVE UNITS"
+          value={String(stats?.owned_items || 0)}
+          accent="#00E676"
+          delay={0.1}
+          icon={
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="square" strokeWidth={1.5} d="M5 13l4 4L19 7" />
+            </svg>
+          }
+        />
+        <StatCard
+          label="NET P/L"
+          value={stats ? formatCurrency(profit, 0) : '฿0'}
+          accent={profitColor}
+          delay={0.15}
+          icon={
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="square" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          }
+        />
+        <StatCard
+          label="DAILY BURN"
+          value={stats ? formatCurrency(stats.daily_burn_rate) : '฿0'}
+          accent="var(--neon-red)"
+          delay={0.2}
+          icon={
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="square" strokeWidth={1.5} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
+            </svg>
+          }
+        />
+      </div>
 
+      {/* ── Items Section ── */}
+      <div style={{ animation: 'slide-up 0.5s ease 0.25s both' }}>
+
+        {/* Section header */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '12px',
+            paddingBottom: '8px',
+            borderBottom: '1px solid rgba(255,43,43,0.12)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ width: '3px', height: '14px', background: 'var(--neon-red)', boxShadow: '0 0 6px var(--neon-red)' }} />
+            <h2
+              className="font-display"
+              style={{ margin: 0, fontSize: '11px', letterSpacing: '0.18em', fontWeight: 600, color: 'var(--text-primary)' }}
+            >
+              ASSET REGISTRY
+            </h2>
+          </div>
+          <div className="hud-label" style={{ fontSize: '8px' }}>
+            {filteredItems.length} RECORDS
+          </div>
         </div>
 
-        <div className="relative">
-          <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-            <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+        {/* Search bar */}
+        <div style={{ position: 'relative', marginBottom: '10px' }}>
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              bottom: 0,
+              left: 0,
+              width: '2px',
+              background: 'rgba(255,43,43,0.4)',
+            }}
+          />
+          <div
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '14px',
+              transform: 'translateY(-50%)',
+              pointerEvents: 'none',
+              color: 'rgba(255,43,43,0.5)',
+            }}
+          >
+            <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="square" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
           </div>
           <input
             type="text"
-            placeholder="Search your items..."
+            placeholder="SEARCH ASSETS..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
+            onChange={e => setSearchTerm(e.target.value)}
+            style={{
+              width: '100%',
+              paddingLeft: '34px',
+              paddingRight: '12px',
+              paddingTop: '10px',
+              paddingBottom: '10px',
+              background: 'rgba(8,8,8,0.9)',
+              border: '1px solid rgba(255,43,43,0.15)',
+              borderLeft: 'none',
+              color: 'var(--text-primary)',
+              fontFamily: 'var(--font-display)',
+              fontSize: '10px',
+              letterSpacing: '0.14em',
+              outline: 'none',
+              transition: 'all 0.2s ease',
+              boxSizing: 'border-box',
+            }}
+            onFocus={e => {
+              (e.currentTarget).style.borderColor = 'rgba(255,43,43,0.5)';
+              (e.currentTarget).style.boxShadow = '0 0 16px rgba(255,43,43,0.1)';
+            }}
+            onBlur={e => {
+              (e.currentTarget).style.borderColor = 'rgba(255,43,43,0.15)';
+              (e.currentTarget).style.boxShadow = 'none';
+            }}
           />
         </div>
 
-        {/* Collapsible Filters - Styled */}
-        <div className="flex flex-wrap gap-2">
+        {/* Filter controls */}
+        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '12px' }}>
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${showFilters
-              ? 'bg-blue-500/20 border-blue-500/30 text-blue-400'
-              : 'bg-gray-800/50 border-gray-700/50 text-gray-400 hover:bg-gray-800'
-              }`}
+            className="font-display"
+            style={{
+              padding: '4px 10px',
+              background: showFilters ? 'rgba(255,43,43,0.12)' : 'rgba(255,255,255,0.03)',
+              border: `1px solid ${showFilters ? 'rgba(255,43,43,0.4)' : 'rgba(255,255,255,0.08)'}`,
+              color: showFilters ? 'var(--soft-red)' : 'var(--text-dim)',
+              fontSize: '8px',
+              letterSpacing: '0.14em',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+            }}
           >
-            Filters {showFilters ? '−' : '+'}
+            FILTERS {showFilters ? '−' : '+'}
           </button>
 
-          {showFilters && (
-            <>
+          {/* Active filter chips */}
+          {selectedStatus && (
+            <button
+              onClick={() => setSelectedStatus(null)}
+              className="font-display"
+              style={{
+                padding: '4px 10px',
+                background: 'rgba(255,43,43,0.1)',
+                border: '1px solid rgba(255,43,43,0.35)',
+                color: 'var(--soft-red)',
+                fontSize: '8px',
+                letterSpacing: '0.12em',
+                cursor: 'pointer',
+              }}
+            >
+              STATUS: {selectedStatus.toUpperCase()} ×
+            </button>
+          )}
+          {selectedTag && (
+            <button
+              onClick={() => setSelectedTag(null)}
+              className="font-display"
+              style={{
+                padding: '4px 10px',
+                background: 'rgba(255,43,43,0.1)',
+                border: '1px solid rgba(255,43,43,0.35)',
+                color: 'var(--soft-red)',
+                fontSize: '8px',
+                letterSpacing: '0.12em',
+                cursor: 'pointer',
+              }}
+            >
+              TAG: {selectedTag.toUpperCase()} ×
+            </button>
+          )}
+        </div>
+
+        {/* Filter panel */}
+        {showFilters && (
+          <div
+            style={{
+              background: 'rgba(8,8,8,0.9)',
+              border: '1px solid rgba(255,43,43,0.15)',
+              padding: '12px',
+              marginBottom: '12px',
+              display: 'flex',
+              gap: '8px',
+              flexWrap: 'wrap',
+              animation: 'slide-up 0.2s ease both',
+            }}
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: '120px' }}>
+              <span className="hud-label" style={{ fontSize: '7px' }}>STATUS FILTER</span>
               <select
                 value={selectedStatus || ''}
-                onChange={(e) => setSelectedStatus(e.target.value || null)}
-                className="px-3 py-1.5 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                onChange={e => setSelectedStatus(e.target.value || null)}
+                style={{
+                  background: 'rgba(5,5,5,0.9)',
+                  border: '1px solid rgba(255,43,43,0.2)',
+                  color: 'var(--text-primary)',
+                  fontFamily: 'var(--font-tech)',
+                  fontSize: '13px',
+                  padding: '6px 8px',
+                  outline: 'none',
+                  cursor: 'pointer',
+                }}
               >
-                <option value="">Status: All</option>
+                <option value="">All Status</option>
                 <option value="owned">Owned</option>
                 <option value="sold">Sold</option>
               </select>
-
-              {allTags.length > 0 && (
+            </div>
+            {allTags.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: '120px' }}>
+                <span className="hud-label" style={{ fontSize: '7px' }}>TAG FILTER</span>
                 <select
                   value={selectedTag || ''}
-                  onChange={(e) => setSelectedTag(e.target.value || null)}
-                  className="px-3 py-1.5 bg-gray-800/50 border border-gray-700/50 rounded-lg text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  onChange={e => setSelectedTag(e.target.value || null)}
+                  style={{
+                    background: 'rgba(5,5,5,0.9)',
+                    border: '1px solid rgba(255,43,43,0.2)',
+                    color: 'var(--text-primary)',
+                    fontFamily: 'var(--font-tech)',
+                    fontSize: '13px',
+                    padding: '6px 8px',
+                    outline: 'none',
+                    cursor: 'pointer',
+                  }}
                 >
-                  <option value="">Tag: All</option>
+                  <option value="">All Tags</option>
                   {allTags.map(tag => (
                     <option key={tag} value={tag}>{tag}</option>
                   ))}
                 </select>
-              )}
-            </>
-          )}
-        </div>
-
-        {/* Items List - Card Style */}
-        <div className="space-y-3">
-          {paginatedItems.map(item => {
-            const dailyBurn = calculateItemDailyBurn(item);
-            return (
-              <ItemCard key={item.id} item={item} dailyBurn={dailyBurn} />
-            );
-          })}
-        </div>
-
-        {filteredItems.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-16 text-center border-2 border-dashed border-gray-800 rounded-2xl">
-            <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mb-4">
-              <span className="text-2xl">📦</span>
-            </div>
-            <h3 className="text-white font-medium mb-1">No items found</h3>
-            <p className="text-gray-500 text-sm">Try adjusting your filters or search</p>
+              </div>
+            )}
           </div>
         )}
 
-        {/* Pagination */}{totalPages > 1 && (
-          <div className="flex justify-center items-center gap-2 py-4">
+        {/* Items list */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          {paginatedItems.map((item, i) => (
+            <div
+              key={item.id}
+              style={{ animation: `slide-up 0.3s ease ${i * 0.04}s both` }}
+            >
+              <ItemCard item={item} dailyBurn={calculateItemDailyBurn(item)} />
+            </div>
+          ))}
+        </div>
+
+        {/* Empty state */}
+        {filteredItems.length === 0 && (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '48px 16px',
+              border: '1px dashed rgba(255,43,43,0.2)',
+              textAlign: 'center',
+              animation: 'fade-in 0.4s ease both',
+            }}
+          >
+            <div
+              className="font-display"
+              style={{ fontSize: '11px', letterSpacing: '0.2em', color: 'var(--text-dim)', marginBottom: '8px' }}
+            >
+              NO RECORDS FOUND
+            </div>
+            <div
+              className="font-tech"
+              style={{ fontSize: '12px', color: 'rgba(255,255,255,0.15)' }}
+            >
+              Adjust search filters or add new assets
+            </div>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              gap: '10px',
+              paddingTop: '16px',
+              marginTop: '8px',
+              borderTop: '1px solid rgba(255,43,43,0.1)',
+            }}
+          >
             <button
               disabled={currentPage === 1}
               onClick={() => setCurrentPage(p => p - 1)}
-              className="w-10 h-10 rounded-xl bg-gray-800 border border-gray-700 flex items-center justify-center text-gray-400 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              style={{
+                width: '32px',
+                height: '32px',
+                background: 'rgba(255,43,43,0.08)',
+                border: '1px solid rgba(255,43,43,0.2)',
+                color: 'var(--neon-red)',
+                cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                opacity: currentPage === 1 ? 0.3 : 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontFamily: 'var(--font-display)',
+                fontSize: '12px',
+              }}
             >
-              ←
+              ‹
             </button>
-            <span className="text-sm font-medium text-gray-400">
-              Page {currentPage} of {totalPages}
+            <span
+              className="font-display"
+              style={{ fontSize: '9px', letterSpacing: '0.15em', color: 'var(--text-secondary)' }}
+            >
+              PAGE {currentPage} / {totalPages}
             </span>
             <button
               disabled={currentPage === totalPages}
               onClick={() => setCurrentPage(p => p + 1)}
-              className="w-10 h-10 rounded-xl bg-gray-800 border border-gray-700 flex items-center justify-center text-gray-400 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              style={{
+                width: '32px',
+                height: '32px',
+                background: 'rgba(255,43,43,0.08)',
+                border: '1px solid rgba(255,43,43,0.2)',
+                color: 'var(--neon-red)',
+                cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                opacity: currentPage === totalPages ? 0.3 : 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontFamily: 'var(--font-display)',
+                fontSize: '12px',
+              }}
             >
-              →
+              ›
             </button>
           </div>
         )}

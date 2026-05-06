@@ -4,69 +4,182 @@ import { formatCurrency } from '../../../api/items/calculations';
 import type { PantagonItem } from '../../../api/items/types';
 
 interface ItemCardProps {
-    item: PantagonItem;
-    dailyBurn: number;
+  item: PantagonItem;
+  dailyBurn: number;
 }
 
 export default function ItemCard({ item, dailyBurn }: ItemCardProps) {
-    const navigate = useNavigate();
+  const navigate = useNavigate();
+  const isOwned = item.status === 'owned';
 
-    return (
-        <div
-            onClick={() => navigate(`/${item.id}`)}
-            className="group relative bg-gray-800/20 border border-gray-700/30 hover:bg-gray-800/40 hover:border-gray-600/50 rounded-2xl p-4 cursor-pointer transition-all duration-300"
-        >
-            <div className="flex justify-between items-start mb-2">
-                <div className="flex-1 pr-4">
-                    <h3 className="text-white font-semibold text-base mb-1 group-hover:text-blue-400 transition-colors">
-                        {item.name}
-                    </h3>
-                    <div className="flex flex-wrap gap-1">
-                        {item.tags?.slice(0, 3).map(tag => (
-                            <span key={tag} className="text-[10px] text-gray-400 font-medium bg-gray-900/60 px-1.5 py-0.5 rounded border border-gray-700/50">
-                                {tag}
-                            </span>
-                        ))}
-                        {item.tags && item.tags.length > 3 && (
-                            <span className="text-[10px] text-gray-500 font-medium px-1 py-0.5">
-                                +{item.tags.length - 3}
-                            </span>
-                        )}
-                    </div>
-                </div>
-                <div className="text-right">
-                    <div className="text-white font-bold tracking-tight">
-                        {formatCurrency(item.buy_price)}
-                    </div>
-                    <div className={`mt-1 inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border ${item.status === 'owned'
-                        ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                        : 'bg-blue-500/10 border-blue-500/20 text-blue-400'
-                        }`}>
-                        {item.status}
-                    </div>
-                </div>
+  return (
+    <div
+      onClick={() => navigate(`/${item.id}`)}
+      style={{
+        background: 'rgba(10,10,10,0.85)',
+        backdropFilter: 'blur(12px)',
+        border: '1px solid rgba(255,43,43,0.12)',
+        borderLeft: '2px solid rgba(255,43,43,0.5)',
+        padding: '12px 14px',
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+      onMouseEnter={e => {
+        const el = e.currentTarget as HTMLElement;
+        el.style.background = 'rgba(255,43,43,0.05)';
+        el.style.borderColor = 'rgba(255,43,43,0.35)';
+        el.style.borderLeftColor = 'var(--neon-red)';
+        el.style.boxShadow = '0 0 20px rgba(255,43,43,0.1), inset 0 0 20px rgba(255,43,43,0.03)';
+        el.style.transform = 'translateX(2px)';
+      }}
+      onMouseLeave={e => {
+        const el = e.currentTarget as HTMLElement;
+        el.style.background = 'rgba(10,10,10,0.85)';
+        el.style.borderColor = 'rgba(255,43,43,0.12)';
+        el.style.borderLeftColor = 'rgba(255,43,43,0.5)';
+        el.style.boxShadow = 'none';
+        el.style.transform = 'translateX(0)';
+      }}
+    >
+      {/* Top row */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+        {/* Left: name + tags */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <h3
+            className="font-ui"
+            style={{
+              margin: '0 0 5px 0',
+              fontSize: '14px',
+              fontWeight: 600,
+              color: 'var(--text-primary)',
+              letterSpacing: '0.02em',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {item.name}
+          </h3>
+          {/* Tags */}
+          {item.tags && item.tags.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+              {item.tags.slice(0, 3).map(tag => (
+                <span
+                  key={tag}
+                  className="font-display"
+                  style={{
+                    fontSize: '7px',
+                    letterSpacing: '0.1em',
+                    textTransform: 'uppercase',
+                    padding: '1px 5px',
+                    background: 'rgba(255,43,43,0.06)',
+                    border: '1px solid rgba(255,43,43,0.18)',
+                    color: 'rgba(255,90,90,0.7)',
+                  }}
+                >
+                  {tag}
+                </span>
+              ))}
+              {item.tags.length > 3 && (
+                <span
+                  className="font-display"
+                  style={{ fontSize: '7px', letterSpacing: '0.1em', color: 'var(--text-dim)', padding: '1px 3px' }}
+                >
+                  +{item.tags.length - 3}
+                </span>
+              )}
             </div>
-
-            <div className="mt-3 pt-3 border-t border-gray-700/30 flex justify-between items-center text-xs text-gray-500">
-                <div className="flex items-center gap-1.5">
-                    {item.status === 'owned' && item.daily_burn && (
-                        <>
-                            <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                            <span className="text-red-300 font-medium">
-                                {formatCurrency(dailyBurn)}/day
-                            </span>
-                        </>
-                    )}
-                </div>
-
-                <div>
-                    {item.status === 'sold' && item.sell_date ? (
-                        <span>Sold {format(new Date(item.sell_date), 'MMM d, yyyy')}</span>
-                    ) : (
-                        <span>Bought {format(new Date(item.buy_date), 'MMM d, yyyy')}</span>
-                    )}
-                </div>
-            </div>
+          )}
         </div>
-    );
+
+        {/* Right: price + status */}
+        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+          <div
+            className="font-tech"
+            style={{
+              fontSize: '15px',
+              fontWeight: 600,
+              color: 'var(--text-primary)',
+              letterSpacing: '0.03em',
+            }}
+          >
+            {formatCurrency(item.buy_price)}
+          </div>
+          <div style={{ marginTop: '4px' }}>
+            {isOwned ? (
+              <span className="badge-owned">OWNED</span>
+            ) : (
+              <span className="badge-sold">SOLD</span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom row */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginTop: '9px',
+          paddingTop: '8px',
+          borderTop: '1px solid rgba(255,255,255,0.04)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          {isOwned && item.daily_burn && (
+            <>
+              <div style={{ position: 'relative', width: '5px', height: '5px' }}>
+                <div
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    borderRadius: '50%',
+                    background: 'var(--neon-red)',
+                    animation: 'status-ping 2s ease-in-out infinite',
+                    opacity: 0.4,
+                  }}
+                />
+                <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: 'var(--neon-red)', boxShadow: '0 0 4px var(--neon-red)' }} />
+              </div>
+              <span
+                className="font-display"
+                style={{ fontSize: '9px', letterSpacing: '0.1em', color: 'var(--soft-red)' }}
+              >
+                {formatCurrency(dailyBurn)}<span style={{ color: 'var(--text-dim)' }}>/day</span>
+              </span>
+            </>
+          )}
+        </div>
+
+        <div
+          className="font-tech"
+          style={{ fontSize: '10px', color: 'var(--text-dim)', letterSpacing: '0.04em' }}
+        >
+          {item.status === 'sold' && item.sell_date
+            ? `SOLD ${format(new Date(item.sell_date), 'MMM d, yyyy').toUpperCase()}`
+            : `ACQ ${format(new Date(item.buy_date), 'MMM d, yyyy').toUpperCase()}`
+          }
+        </div>
+      </div>
+
+      {/* Right chevron indicator */}
+      <div
+        style={{
+          position: 'absolute',
+          right: '10px',
+          top: '50%',
+          transform: 'translateY(-50%)',
+          color: 'rgba(255,43,43,0.2)',
+          pointerEvents: 'none',
+        }}
+      >
+        <svg width="8" height="12" fill="none" viewBox="0 0 8 12">
+          <path d="M1 1l6 5-6 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="square" />
+        </svg>
+      </div>
+    </div>
+  );
 }
