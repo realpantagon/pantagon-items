@@ -14,15 +14,15 @@ function SectionHeader({ children }: { children: React.ReactNode }) {
         display: 'flex',
         alignItems: 'center',
         gap: '10px',
-        marginBottom: '14px',
-        paddingBottom: '8px',
-        borderBottom: '1px solid rgba(255,43,43,0.12)',
+        marginBottom: '12px',
+        paddingBottom: '7px',
+        borderBottom: '1px solid var(--border-subtle)',
       }}
     >
-      <div style={{ width: '2px', height: '12px', background: 'var(--neon-red)', boxShadow: '0 0 6px var(--neon-red)' }} />
+      <div style={{ width: '2px', height: '10px', background: 'var(--accent)' }} />
       <span
         className="font-display"
-        style={{ fontSize: '9px', letterSpacing: '0.2em', fontWeight: 600, color: 'var(--text-secondary)' }}
+        style={{ fontSize: '8px', letterSpacing: '0.18em', fontWeight: 600, color: 'var(--text-secondary)' }}
       >
         {children}
       </span>
@@ -30,20 +30,21 @@ function SectionHeader({ children }: { children: React.ReactNode }) {
   );
 }
 
-function FormSection({ children }: { children: React.ReactNode }) {
+function FormSection({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
   return (
     <div
       style={{
-        background: 'rgba(10,10,10,0.85)',
-        backdropFilter: 'blur(12px)',
-        border: '1px solid rgba(255,43,43,0.12)',
-        borderTop: '1px solid rgba(255,43,43,0.35)',
-        padding: '16px',
+        background: 'var(--bg-surface)',
+        backdropFilter: 'blur(16px)',
+        border: '1px solid var(--border-subtle)',
+        padding: '0.85rem',
         position: 'relative',
-        overflow: 'hidden',
+        overflow: 'visible',
+        borderRadius: '1rem',
+        boxShadow: 'var(--shadow-sm)',
+        ...style,
       }}
     >
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, var(--neon-red), transparent)', animation: 'energy-line 7s ease-in-out infinite' }} />
       {children}
     </div>
   );
@@ -53,6 +54,7 @@ export default function AddItem() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [tagsOpen, setTagsOpen] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -118,19 +120,19 @@ export default function AddItem() {
     <div style={{ paddingTop: '8px', paddingBottom: '80px', animation: 'slide-up 0.4s ease both' }}>
 
       {/* Page header */}
-      <div style={{ marginBottom: '20px' }}>
+      <div style={{ marginBottom: '16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
-          <div style={{ height: '1px', width: '16px', background: 'var(--neon-red)', boxShadow: '0 0 6px var(--neon-red)' }} />
-          <span className="hud-label" style={{ fontSize: '8px', color: 'var(--neon-red)', letterSpacing: '0.25em' }}>
-            NEW RECORD
+          <div style={{ height: '1px', width: '14px', background: 'var(--accent)' }} />
+          <span className="hud-label" style={{ fontSize: '7px', color: 'var(--accent)', letterSpacing: '0.16em' }}>
+            New record
           </span>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
           <h1
             className="font-display"
-            style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '0.08em', color: 'var(--text-primary)', margin: 0 }}
+            style={{ fontSize: '18px', fontWeight: 700, letterSpacing: '0.01em', color: 'var(--text-primary)', margin: 0 }}
           >
-            REGISTER ASSET
+            Register asset
           </h1>
           <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
             CANCEL
@@ -139,12 +141,12 @@ export default function AddItem() {
       </div>
 
       <form onSubmit={handleSubmit}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
 
           {/* Basic Info */}
-          <FormSection>
+          <FormSection style={{ zIndex: tagsOpen ? 20 : 1 }}>
             <SectionHeader>IDENTIFICATION</SectionHeader>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '12px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px' }}>
               <Input
                 label="ASSET NAME *"
                 name="name"
@@ -159,6 +161,7 @@ export default function AddItem() {
                   value={formData.tags}
                   onChange={tags => setFormData(prev => ({ ...prev, tags }))}
                   placeholder="Select or type tags..."
+                  onOpenChange={setTagsOpen}
                 />
               </div>
               <Select
@@ -175,9 +178,9 @@ export default function AddItem() {
           </FormSection>
 
           {/* Purchase Info */}
-          <FormSection>
+          <FormSection style={{ zIndex: 1 }}>
             <SectionHeader>ACQUISITION DATA</SectionHeader>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px' }}>
               <Input
                 label="BUY DATE *"
                 name="buy_date"
@@ -229,9 +232,8 @@ export default function AddItem() {
                     width: '32px',
                     height: '18px',
                     borderRadius: '9px',
-                    background: formData.daily_burn ? 'rgba(255,43,43,0.3)' : 'rgba(255,255,255,0.06)',
-                    border: `1px solid ${formData.daily_burn ? 'rgba(255,43,43,0.6)' : 'rgba(255,255,255,0.1)'}`,
-                    boxShadow: formData.daily_burn ? '0 0 8px rgba(255,43,43,0.3)' : 'none',
+                    background: formData.daily_burn ? 'var(--accent-soft)' : 'var(--bg-secondary)',
+                    border: `1px solid ${formData.daily_burn ? 'var(--accent)' : 'var(--border-subtle)'}`,
                     cursor: 'pointer',
                     position: 'relative',
                     transition: 'all 0.2s ease',
@@ -246,14 +248,13 @@ export default function AddItem() {
                       width: '12px',
                       height: '12px',
                       borderRadius: '50%',
-                      background: formData.daily_burn ? 'var(--neon-red)' : 'rgba(255,255,255,0.3)',
-                      boxShadow: formData.daily_burn ? '0 0 6px var(--neon-red)' : 'none',
+                      background: formData.daily_burn ? 'var(--accent)' : 'var(--text-dim)',
                       transition: 'all 0.2s ease',
                     }}
                   />
                 </button>
                 <span className="hud-label" style={{ fontSize: '8px' }}>
-                  TRACK DAILY BURN
+                  Track daily burn
                 </span>
               </div>
             </div>
@@ -263,7 +264,7 @@ export default function AddItem() {
           {formData.status === 'sold' && (
             <FormSection>
               <SectionHeader>DIVESTMENT DATA</SectionHeader>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px' }}>
                 <Input
                   label="SELL DATE"
                   name="sell_date"
@@ -288,38 +289,31 @@ export default function AddItem() {
           <FormSection>
             <SectionHeader>NOTES</SectionHeader>
             <div style={{ position: 'relative' }}>
-              <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: '2px', background: 'rgba(255,43,43,0.4)' }} />
+              <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: '2px', background: 'var(--accent)' }} />
               <textarea
                 name="note"
                 value={formData.note}
                 onChange={handleChange}
-                rows={4}
+                rows={3}
                 placeholder="Additional notes about this asset..."
                 style={{
                   width: '100%',
-                  paddingLeft: '14px',
-                  paddingRight: '12px',
+                  paddingLeft: '12px',
+                  paddingRight: '10px',
                   paddingTop: '10px',
                   paddingBottom: '10px',
-                  background: 'rgba(8,8,8,0.9)',
-                  border: '1px solid rgba(255,43,43,0.15)',
+                  background: 'var(--bg-elevated)',
+                  border: '1px solid var(--border-subtle)',
                   borderLeft: 'none',
                   color: 'var(--text-primary)',
-                  fontFamily: 'var(--font-tech)',
-                  fontSize: '14px',
+                  fontFamily: 'var(--font-body)',
+                  fontSize: '13px',
                   letterSpacing: '0.02em',
                   outline: 'none',
                   resize: 'vertical',
                   lineHeight: 1.6,
                   boxSizing: 'border-box',
-                }}
-                onFocus={e => {
-                  (e.currentTarget).style.borderColor = 'rgba(255,43,43,0.4)';
-                  (e.currentTarget).style.boxShadow = '0 0 12px rgba(255,43,43,0.08)';
-                }}
-                onBlur={e => {
-                  (e.currentTarget).style.borderColor = 'rgba(255,43,43,0.15)';
-                  (e.currentTarget).style.boxShadow = 'none';
+                  borderRadius: '0 0.85rem 0.85rem 0',
                 }}
               />
             </div>
@@ -334,12 +328,12 @@ export default function AddItem() {
           bottom: 0,
           left: 0,
           right: 0,
-          maxWidth: '480px',
+          maxWidth: '430px',
           margin: '0 auto',
-          padding: '10px 16px',
-          background: 'rgba(5,5,5,0.95)',
+          padding: '8px 12px',
+          background: 'color-mix(in srgb, var(--bg-primary) 90%, transparent)',
           backdropFilter: 'blur(20px)',
-          borderTop: '1px solid rgba(255,43,43,0.2)',
+          borderTop: '1px solid var(--border-subtle)',
           display: 'flex',
           gap: '8px',
           zIndex: 20,
@@ -348,20 +342,20 @@ export default function AddItem() {
         <Button
           type="submit"
           variant="primary"
-          size="lg"
+          size="md"
           style={{ flex: 1 }}
           disabled={loading}
           onClick={handleSubmit}
         >
-          {loading ? 'REGISTERING...' : 'REGISTER ASSET'}
+          {loading ? 'Registering...' : 'Register asset'}
         </Button>
         <Button
           variant="ghost"
-          size="lg"
+          size="md"
           onClick={() => navigate('/')}
           style={{ minWidth: '80px' }}
         >
-          CANCEL
+          Cancel
         </Button>
       </div>
     </div>

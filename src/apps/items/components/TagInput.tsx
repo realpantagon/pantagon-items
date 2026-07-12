@@ -6,9 +6,10 @@ interface TagInputProps {
   onChange: (tags: string[]) => void;
   placeholder?: string;
   className?: string;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export default function TagInput({ value = [], onChange, placeholder = 'Add tags...', className = '' }: TagInputProps) {
+export default function TagInput({ value = [], onChange, placeholder = 'Add tags...', className = '', onOpenChange }: TagInputProps) {
   const safeValue = Array.isArray(value) ? value : [];
   const [inputValue, setInputValue] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -23,6 +24,7 @@ export default function TagInput({ value = [], onChange, placeholder = 'Add tags
     function handleClickOutside(event: MouseEvent) {
       if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
         setIsOpen(false);
+        onOpenChange?.(false);
         setFocused(false);
       }
     }
@@ -66,6 +68,7 @@ export default function TagInput({ value = [], onChange, placeholder = 'Add tags
       setInputValue('');
       setSuggestions([]);
       setIsOpen(false);
+      onOpenChange?.(false);
     }
   };
 
@@ -85,35 +88,28 @@ export default function TagInput({ value = [], onChange, placeholder = 'Add tags
   };
 
   return (
-    <div ref={wrapperRef} style={{ position: 'relative', width: '100%' }} className={className}>
+    <div
+      ref={wrapperRef}
+      style={{ position: 'relative', width: '100%', zIndex: isOpen ? 20 : 1 }}
+      className={className}
+    >
       {/* Container */}
       <div
         style={{
           display: 'flex',
           flexWrap: 'wrap',
           gap: '6px',
-          padding: '8px 12px 8px 14px',
-          background: 'rgba(8,8,8,0.9)',
-          border: `1px solid ${focused ? 'rgba(255,43,43,0.5)' : 'rgba(255,43,43,0.15)'}`,
-          borderLeft: 'none',
-          boxShadow: focused ? '0 0 0 1px rgba(255,43,43,0.2), 0 0 16px rgba(255,43,43,0.1)' : 'none',
-          minHeight: '44px',
+          padding: '0.68rem 0.85rem',
+          background: 'var(--bg-elevated)',
+          border: `1px solid ${focused ? 'color-mix(in srgb, var(--accent) 34%, transparent)' : 'var(--border-subtle)'}`,
+          boxShadow: focused ? '0 0 0 4px var(--accent-soft)' : 'none',
+          minHeight: '40px',
           alignItems: 'center',
           transition: 'all 0.2s ease',
-          borderRadius: '0 2px 2px 0',
+          borderRadius: '0.9rem',
           position: 'relative',
         }}
       >
-        {/* Left accent */}
-        <div
-          style={{
-            position: 'absolute',
-            top: 0, bottom: 0, left: '-14px',
-            width: '2px',
-            background: 'rgba(255,43,43,0.4)',
-          }}
-        />
-
         {/* Tags */}
         {safeValue.map(tag => (
           <span
@@ -123,14 +119,13 @@ export default function TagInput({ value = [], onChange, placeholder = 'Add tags
               alignItems: 'center',
               gap: '4px',
               padding: '2px 8px',
-              background: 'rgba(255,43,43,0.1)',
-              border: '1px solid rgba(255,43,43,0.3)',
-              color: 'var(--soft-red)',
+              background: 'var(--accent-soft)',
+              border: '1px solid var(--border-subtle)',
+              color: 'var(--accent-strong)',
               fontFamily: 'var(--font-display)',
               fontSize: '8px',
               letterSpacing: '0.12em',
               textTransform: 'uppercase',
-              boxShadow: '0 0 6px rgba(255,43,43,0.15)',
             }}
           >
             {tag}
@@ -140,7 +135,7 @@ export default function TagInput({ value = [], onChange, placeholder = 'Add tags
               style={{
                 background: 'none',
                 border: 'none',
-                color: 'rgba(255,90,90,0.7)',
+                color: 'var(--text-dim)',
                 cursor: 'pointer',
                 padding: 0,
                 lineHeight: 1,
@@ -165,6 +160,7 @@ export default function TagInput({ value = [], onChange, placeholder = 'Add tags
             const available = allTags.filter(t => !safeValue.includes(t));
             setSuggestions(available);
             setIsOpen(true);
+            onOpenChange?.(true);
           }}
           onBlur={() => setFocused(false)}
           placeholder={safeValue.length === 0 ? placeholder : ''}
@@ -174,8 +170,8 @@ export default function TagInput({ value = [], onChange, placeholder = 'Add tags
             border: 'none',
             outline: 'none',
             color: 'var(--text-primary)',
-            fontFamily: 'var(--font-tech)',
-            fontSize: '14px',
+            fontFamily: 'var(--font-body)',
+            fontSize: '13px',
             minWidth: '80px',
           }}
         />
@@ -186,16 +182,16 @@ export default function TagInput({ value = [], onChange, placeholder = 'Add tags
         <div
           style={{
             position: 'absolute',
-            top: '100%',
+            top: 'calc(100% + 6px)',
             left: 0,
             right: 0,
-            background: 'rgba(10,10,10,0.97)',
-            border: '1px solid rgba(255,43,43,0.25)',
-            borderTop: 'none',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.8), 0 0 20px rgba(255,43,43,0.1)',
-            maxHeight: '180px',
+            background: 'var(--bg-elevated)',
+            border: '1px solid var(--border-subtle)',
+            borderRadius: '0.9rem',
+            boxShadow: 'var(--shadow-md)',
+            maxHeight: '156px',
             overflowY: 'auto',
-            zIndex: 100,
+            zIndex: 50,
           }}
         >
           {suggestions.map(tag => (
@@ -207,19 +203,19 @@ export default function TagInput({ value = [], onChange, placeholder = 'Add tags
                 display: 'block',
                 width: '100%',
                 textAlign: 'left',
-                padding: '8px 14px',
+                padding: '8px 12px',
                 background: 'transparent',
                 border: 'none',
-                borderBottom: '1px solid rgba(255,255,255,0.03)',
+                borderBottom: '1px solid var(--border-subtle)',
                 color: 'var(--text-secondary)',
-                fontFamily: 'var(--font-tech)',
+                fontFamily: 'var(--font-body)',
                 fontSize: '13px',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
               }}
               onMouseEnter={e => {
-                (e.currentTarget as HTMLElement).style.background = 'rgba(255,43,43,0.08)';
-                (e.currentTarget as HTMLElement).style.color = 'var(--soft-red)';
+                (e.currentTarget as HTMLElement).style.background = 'var(--accent-soft)';
+                (e.currentTarget as HTMLElement).style.color = 'var(--accent-strong)';
                 (e.currentTarget as HTMLElement).style.paddingLeft = '20px';
               }}
               onMouseLeave={e => {
@@ -228,7 +224,7 @@ export default function TagInput({ value = [], onChange, placeholder = 'Add tags
                 (e.currentTarget as HTMLElement).style.paddingLeft = '14px';
               }}
             >
-              <span style={{ color: 'rgba(255,43,43,0.5)', marginRight: '6px', fontFamily: 'var(--font-display)', fontSize: '9px' }}>+</span>
+              <span style={{ color: 'var(--accent)', marginRight: '6px', fontFamily: 'var(--font-tech)', fontSize: '9px' }}>+</span>
               {tag}
             </button>
           ))}

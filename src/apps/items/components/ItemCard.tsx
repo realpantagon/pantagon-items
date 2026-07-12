@@ -15,32 +15,13 @@ export default function ItemCard({ item, dailyBurn }: ItemCardProps) {
   return (
     <div
       onClick={() => navigate(`/${item.id}`)}
+      className="ui-card"
       style={{
-        background: 'rgba(10,10,10,0.85)',
-        backdropFilter: 'blur(12px)',
-        border: '1px solid rgba(255,43,43,0.12)',
-        borderLeft: '2px solid rgba(255,43,43,0.5)',
-        padding: '12px 14px',
+        padding: '0.95rem 1rem',
         cursor: 'pointer',
-        transition: 'all 0.2s ease',
+        transition: 'transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease, background 160ms ease',
         position: 'relative',
         overflow: 'hidden',
-      }}
-      onMouseEnter={e => {
-        const el = e.currentTarget as HTMLElement;
-        el.style.background = 'rgba(255,43,43,0.05)';
-        el.style.borderColor = 'rgba(255,43,43,0.35)';
-        el.style.borderLeftColor = 'var(--neon-red)';
-        el.style.boxShadow = '0 0 20px rgba(255,43,43,0.1), inset 0 0 20px rgba(255,43,43,0.03)';
-        el.style.transform = 'translateX(2px)';
-      }}
-      onMouseLeave={e => {
-        const el = e.currentTarget as HTMLElement;
-        el.style.background = 'rgba(10,10,10,0.85)';
-        el.style.borderColor = 'rgba(255,43,43,0.12)';
-        el.style.borderLeftColor = 'rgba(255,43,43,0.5)';
-        el.style.boxShadow = 'none';
-        el.style.transform = 'translateX(0)';
       }}
     >
       {/* Top row */}
@@ -74,9 +55,9 @@ export default function ItemCard({ item, dailyBurn }: ItemCardProps) {
                     letterSpacing: '0.1em',
                     textTransform: 'uppercase',
                     padding: '1px 5px',
-                    background: 'rgba(255,43,43,0.06)',
-                    border: '1px solid rgba(255,43,43,0.18)',
-                    color: 'rgba(255,90,90,0.7)',
+                    background: 'var(--accent-soft)',
+                    border: '1px solid var(--border-subtle)',
+                    color: 'var(--accent-strong)',
                   }}
                 >
                   {tag}
@@ -109,9 +90,9 @@ export default function ItemCard({ item, dailyBurn }: ItemCardProps) {
           </div>
           <div style={{ marginTop: '4px' }}>
             {isOwned ? (
-              <span className="badge-owned">OWNED</span>
+              <span className="badge-owned">Owned</span>
             ) : (
-              <span className="badge-sold">SOLD</span>
+              <span className="badge-sold">Sold</span>
             )}
           </div>
         </div>
@@ -125,7 +106,7 @@ export default function ItemCard({ item, dailyBurn }: ItemCardProps) {
           alignItems: 'center',
           marginTop: '9px',
           paddingTop: '8px',
-          borderTop: '1px solid rgba(255,255,255,0.04)',
+          borderTop: '1px solid var(--border-subtle)',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -137,12 +118,11 @@ export default function ItemCard({ item, dailyBurn }: ItemCardProps) {
                     position: 'absolute',
                     inset: 0,
                     borderRadius: '50%',
-                    background: 'var(--neon-red)',
-                    animation: 'status-ping 2s ease-in-out infinite',
-                    opacity: 0.4,
+                    background: 'var(--accent)',
+                    opacity: 0.35,
                   }}
                 />
-                <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: 'var(--neon-red)', boxShadow: '0 0 4px var(--neon-red)' }} />
+                <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: 'var(--accent)' }} />
               </div>
               <span
                 className="font-display"
@@ -165,21 +145,6 @@ export default function ItemCard({ item, dailyBurn }: ItemCardProps) {
         </div>
       </div>
 
-      {/* Right chevron indicator */}
-      <div
-        style={{
-          position: 'absolute',
-          right: '10px',
-          top: '50%',
-          transform: 'translateY(-50%)',
-          color: 'rgba(255,43,43,0.2)',
-          pointerEvents: 'none',
-        }}
-      >
-        <svg width="8" height="12" fill="none" viewBox="0 0 8 12">
-          <path d="M1 1l6 5-6 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="square" />
-        </svg>
-      </div>
     </div>
   );
 }

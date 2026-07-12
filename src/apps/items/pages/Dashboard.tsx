@@ -20,42 +20,18 @@ function StatCard({
   return (
     <div
       style={{
-        background: 'rgba(11,11,11,0.85)',
-        backdropFilter: 'blur(12px)',
-        border: `1px solid ${accent}30`,
-        borderTop: `1px solid ${accent}60`,
+        background: 'var(--bg-surface)',
+        backdropFilter: 'blur(16px)',
+        border: '1px solid var(--border-subtle)',
         padding: '14px',
         position: 'relative',
         overflow: 'hidden',
-        animation: `slide-up 0.5s ease both`,
+        borderRadius: '1.2rem',
+        boxShadow: 'var(--shadow-sm)',
+        animation: `fade-up 0.5s ease both`,
         animationDelay: `${delay}s`,
       }}
     >
-      {/* Corner decoration */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 0,
-          right: 0,
-          width: '20px',
-          height: '20px',
-          borderTop: `1px solid ${accent}50`,
-          borderRight: `1px solid ${accent}50`,
-        }}
-      />
-      <div
-        style={{
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          width: '20px',
-          height: '20px',
-          borderBottom: `1px solid ${accent}30`,
-          borderLeft: `1px solid ${accent}30`,
-        }}
-      />
-
-      {/* Top energy line */}
       <div
         style={{
           position: 'absolute',
@@ -64,7 +40,7 @@ function StatCard({
           right: 0,
           height: '1px',
           background: `linear-gradient(90deg, transparent, ${accent}, transparent)`,
-          animation: 'energy-line 5s ease-in-out infinite',
+          opacity: 0.45,
         }}
       />
 
@@ -84,7 +60,6 @@ function StatCard({
           fontSize: '20px',
           fontWeight: 700,
           color: accent,
-          textShadow: `0 0 12px ${accent}60`,
           letterSpacing: '0.05em',
           lineHeight: 1,
         }}
@@ -164,14 +139,14 @@ export default function Dashboard() {
           style={{
             width: '40px',
             height: '40px',
-            border: '1px solid rgba(255,43,43,0.3)',
-            borderTop: '1px solid var(--neon-red)',
+            border: '1px solid var(--border-subtle)',
+            borderTop: '1px solid var(--accent)',
             borderRadius: '50%',
             animation: 'spin 1s linear infinite',
           }}
         />
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-        <div className="hud-label" style={{ letterSpacing: '0.2em' }}>LOADING SYSTEM DATA...</div>
+        <div className="hud-label" style={{ letterSpacing: '0.18em' }}>Loading system data...</div>
       </div>
     );
   }
@@ -184,24 +159,17 @@ export default function Dashboard() {
 
       {/* ── Page Header ── */}
       <div style={{ marginBottom: '20px', paddingTop: '8px', animation: 'slide-up 0.4s ease both' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
-          <div style={{ height: '1px', width: '20px', background: 'var(--neon-red)', boxShadow: '0 0 6px var(--neon-red)' }} />
-          <span className="hud-label" style={{ fontSize: '8px', color: 'var(--neon-red)', letterSpacing: '0.25em' }}>
-            ASSET MANAGEMENT SYSTEM v2.4
-          </span>
-          <div style={{ flex: 1, height: '1px', background: 'linear-gradient(90deg, rgba(255,43,43,0.4), transparent)' }} />
-        </div>
         <h1
           className="font-display"
           style={{
             fontSize: '22px',
-            fontWeight: 800,
-            letterSpacing: '0.1em',
+            fontWeight: 700,
+            letterSpacing: '0.01em',
             color: 'var(--text-primary)',
             margin: 0,
           }}
         >
-          SYSTEM OVERVIEW
+          System overview
         </h1>
       </div>
 
@@ -243,7 +211,7 @@ export default function Dashboard() {
         <StatCard
           label="DAILY BURN"
           value={stats ? formatCurrency(stats.daily_burn_rate) : '฿0'}
-          accent="var(--neon-red)"
+          accent="var(--accent)"
           delay={0.2}
           icon={
             <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -264,16 +232,16 @@ export default function Dashboard() {
             justifyContent: 'space-between',
             marginBottom: '12px',
             paddingBottom: '8px',
-            borderBottom: '1px solid rgba(255,43,43,0.12)',
+            borderBottom: '1px solid var(--border-subtle)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: '3px', height: '14px', background: 'var(--neon-red)', boxShadow: '0 0 6px var(--neon-red)' }} />
+            <div style={{ width: '3px', height: '14px', background: 'var(--accent)' }} />
             <h2
               className="font-display"
-              style={{ margin: 0, fontSize: '11px', letterSpacing: '0.18em', fontWeight: 600, color: 'var(--text-primary)' }}
+              style={{ margin: 0, fontSize: '11px', letterSpacing: '0.06em', fontWeight: 600, color: 'var(--text-primary)' }}
             >
-              ASSET REGISTRY
+              Asset registry
             </h2>
           </div>
           <div className="hud-label" style={{ fontSize: '8px' }}>
@@ -290,7 +258,7 @@ export default function Dashboard() {
               bottom: 0,
               left: 0,
               width: '2px',
-              background: 'rgba(255,43,43,0.4)',
+              background: 'var(--accent)',
             }}
           />
           <div
@@ -300,7 +268,7 @@ export default function Dashboard() {
               left: '14px',
               transform: 'translateY(-50%)',
               pointerEvents: 'none',
-              color: 'rgba(255,43,43,0.5)',
+              color: 'var(--text-dim)',
             }}
           >
             <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -314,28 +282,21 @@ export default function Dashboard() {
             onChange={e => setSearchTerm(e.target.value)}
             style={{
               width: '100%',
-              paddingLeft: '34px',
-              paddingRight: '12px',
-              paddingTop: '10px',
-              paddingBottom: '10px',
-              background: 'rgba(8,8,8,0.9)',
-              border: '1px solid rgba(255,43,43,0.15)',
+                paddingLeft: '34px',
+                paddingRight: '12px',
+                paddingTop: '12px',
+                paddingBottom: '12px',
+                background: 'var(--bg-elevated)',
+                border: '1px solid var(--border-subtle)',
               borderLeft: 'none',
               color: 'var(--text-primary)',
-              fontFamily: 'var(--font-display)',
+                fontFamily: 'var(--font-body)',
               fontSize: '10px',
-              letterSpacing: '0.14em',
+                letterSpacing: '0.04em',
               outline: 'none',
               transition: 'all 0.2s ease',
               boxSizing: 'border-box',
-            }}
-            onFocus={e => {
-              (e.currentTarget).style.borderColor = 'rgba(255,43,43,0.5)';
-              (e.currentTarget).style.boxShadow = '0 0 16px rgba(255,43,43,0.1)';
-            }}
-            onBlur={e => {
-              (e.currentTarget).style.borderColor = 'rgba(255,43,43,0.15)';
-              (e.currentTarget).style.boxShadow = 'none';
+                borderRadius: '1rem',
             }}
           />
         </div>
@@ -346,17 +307,18 @@ export default function Dashboard() {
             onClick={() => setShowFilters(!showFilters)}
             className="font-display"
             style={{
-              padding: '4px 10px',
-              background: showFilters ? 'rgba(255,43,43,0.12)' : 'rgba(255,255,255,0.03)',
-              border: `1px solid ${showFilters ? 'rgba(255,43,43,0.4)' : 'rgba(255,255,255,0.08)'}`,
-              color: showFilters ? 'var(--soft-red)' : 'var(--text-dim)',
+              padding: '0.45rem 0.75rem',
+              background: showFilters ? 'var(--accent-soft)' : 'var(--bg-elevated)',
+              border: `1px solid ${showFilters ? 'var(--accent)' : 'var(--border-subtle)'}`,
+              color: showFilters ? 'var(--text-primary)' : 'var(--text-secondary)',
               fontSize: '8px',
-              letterSpacing: '0.14em',
+              letterSpacing: '0.08em',
               cursor: 'pointer',
               transition: 'all 0.2s ease',
+              borderRadius: '999px',
             }}
           >
-            FILTERS {showFilters ? '−' : '+'}
+            Filters {showFilters ? '−' : '+'}
           </button>
 
           {/* Active filter chips */}
@@ -365,16 +327,17 @@ export default function Dashboard() {
               onClick={() => setSelectedStatus(null)}
               className="font-display"
               style={{
-                padding: '4px 10px',
-                background: 'rgba(255,43,43,0.1)',
-                border: '1px solid rgba(255,43,43,0.35)',
-                color: 'var(--soft-red)',
+                padding: '0.45rem 0.75rem',
+                background: 'var(--accent-soft)',
+                border: '1px solid var(--border-subtle)',
+                color: 'var(--accent-strong)',
                 fontSize: '8px',
-                letterSpacing: '0.12em',
+                letterSpacing: '0.08em',
                 cursor: 'pointer',
+                borderRadius: '999px',
               }}
             >
-              STATUS: {selectedStatus.toUpperCase()} ×
+              Status: {selectedStatus.toUpperCase()} ×
             </button>
           )}
           {selectedTag && (
@@ -382,16 +345,17 @@ export default function Dashboard() {
               onClick={() => setSelectedTag(null)}
               className="font-display"
               style={{
-                padding: '4px 10px',
-                background: 'rgba(255,43,43,0.1)',
-                border: '1px solid rgba(255,43,43,0.35)',
-                color: 'var(--soft-red)',
+                padding: '0.45rem 0.75rem',
+                background: 'var(--accent-soft)',
+                border: '1px solid var(--border-subtle)',
+                color: 'var(--accent-strong)',
                 fontSize: '8px',
-                letterSpacing: '0.12em',
+                letterSpacing: '0.08em',
                 cursor: 'pointer',
+                borderRadius: '999px',
               }}
             >
-              TAG: {selectedTag.toUpperCase()} ×
+              Tag: {selectedTag.toUpperCase()} ×
             </button>
           )}
         </div>
@@ -400,55 +364,58 @@ export default function Dashboard() {
         {showFilters && (
           <div
             style={{
-              background: 'rgba(8,8,8,0.9)',
-              border: '1px solid rgba(255,43,43,0.15)',
+              background: 'var(--bg-elevated)',
+              border: '1px solid var(--border-subtle)',
               padding: '12px',
               marginBottom: '12px',
               display: 'flex',
               gap: '8px',
               flexWrap: 'wrap',
               animation: 'slide-up 0.2s ease both',
+              borderRadius: '1rem',
             }}
           >
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: '120px' }}>
-              <span className="hud-label" style={{ fontSize: '7px' }}>STATUS FILTER</span>
+              <span className="hud-label" style={{ fontSize: '7px' }}>Status filter</span>
               <select
                 value={selectedStatus || ''}
                 onChange={e => setSelectedStatus(e.target.value || null)}
                 style={{
-                  background: 'rgba(5,5,5,0.9)',
-                  border: '1px solid rgba(255,43,43,0.2)',
+                  background: 'var(--bg-primary)',
+                  border: '1px solid var(--border-subtle)',
                   color: 'var(--text-primary)',
-                  fontFamily: 'var(--font-tech)',
+                  fontFamily: 'var(--font-body)',
                   fontSize: '13px',
                   padding: '6px 8px',
                   outline: 'none',
                   cursor: 'pointer',
+                  borderRadius: '0.85rem',
                 }}
               >
-                <option value="">All Status</option>
+                <option value="">All status</option>
                 <option value="owned">Owned</option>
                 <option value="sold">Sold</option>
               </select>
             </div>
             {allTags.length > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: '120px' }}>
-                <span className="hud-label" style={{ fontSize: '7px' }}>TAG FILTER</span>
+                <span className="hud-label" style={{ fontSize: '7px' }}>Tag filter</span>
                 <select
                   value={selectedTag || ''}
                   onChange={e => setSelectedTag(e.target.value || null)}
                   style={{
-                    background: 'rgba(5,5,5,0.9)',
-                    border: '1px solid rgba(255,43,43,0.2)',
+                    background: 'var(--bg-primary)',
+                    border: '1px solid var(--border-subtle)',
                     color: 'var(--text-primary)',
-                    fontFamily: 'var(--font-tech)',
+                    fontFamily: 'var(--font-body)',
                     fontSize: '13px',
                     padding: '6px 8px',
                     outline: 'none',
                     cursor: 'pointer',
+                    borderRadius: '0.85rem',
                   }}
                 >
-                  <option value="">All Tags</option>
+                  <option value="">All tags</option>
                   {allTags.map(tag => (
                     <option key={tag} value={tag}>{tag}</option>
                   ))}
@@ -463,7 +430,7 @@ export default function Dashboard() {
           {paginatedItems.map((item, i) => (
             <div
               key={item.id}
-              style={{ animation: `slide-up 0.3s ease ${i * 0.04}s both` }}
+              style={{ animation: `fade-up 0.3s ease ${i * 0.04}s both` }}
             >
               <ItemCard item={item} dailyBurn={calculateItemDailyBurn(item)} />
             </div>
@@ -479,20 +446,21 @@ export default function Dashboard() {
               alignItems: 'center',
               justifyContent: 'center',
               padding: '48px 16px',
-              border: '1px dashed rgba(255,43,43,0.2)',
+              border: '1px dashed var(--border-subtle)',
               textAlign: 'center',
               animation: 'fade-in 0.4s ease both',
+              borderRadius: '1rem',
             }}
           >
             <div
               className="font-display"
-              style={{ fontSize: '11px', letterSpacing: '0.2em', color: 'var(--text-dim)', marginBottom: '8px' }}
+              style={{ fontSize: '11px', letterSpacing: '0.06em', color: 'var(--text-dim)', marginBottom: '8px' }}
             >
-              NO RECORDS FOUND
+              No records found
             </div>
             <div
               className="font-tech"
-              style={{ fontSize: '12px', color: 'rgba(255,255,255,0.15)' }}
+              style={{ fontSize: '12px', color: 'var(--text-dim)' }}
             >
               Adjust search filters or add new assets
             </div>
@@ -509,7 +477,7 @@ export default function Dashboard() {
               gap: '10px',
               paddingTop: '16px',
               marginTop: '8px',
-              borderTop: '1px solid rgba(255,43,43,0.1)',
+              borderTop: '1px solid var(--border-subtle)',
             }}
           >
             <button
@@ -518,25 +486,26 @@ export default function Dashboard() {
               style={{
                 width: '32px',
                 height: '32px',
-                background: 'rgba(255,43,43,0.08)',
-                border: '1px solid rgba(255,43,43,0.2)',
-                color: 'var(--neon-red)',
+                background: 'var(--bg-elevated)',
+                border: '1px solid var(--border-subtle)',
+                color: 'var(--text-primary)',
                 cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
                 opacity: currentPage === 1 ? 0.3 : 1,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontFamily: 'var(--font-display)',
+                fontFamily: 'var(--font-body)',
                 fontSize: '12px',
+                borderRadius: '999px',
               }}
             >
               ‹
             </button>
             <span
               className="font-display"
-              style={{ fontSize: '9px', letterSpacing: '0.15em', color: 'var(--text-secondary)' }}
+              style={{ fontSize: '9px', letterSpacing: '0.06em', color: 'var(--text-secondary)' }}
             >
-              PAGE {currentPage} / {totalPages}
+              Page {currentPage} / {totalPages}
             </span>
             <button
               disabled={currentPage === totalPages}
@@ -544,16 +513,17 @@ export default function Dashboard() {
               style={{
                 width: '32px',
                 height: '32px',
-                background: 'rgba(255,43,43,0.08)',
-                border: '1px solid rgba(255,43,43,0.2)',
-                color: 'var(--neon-red)',
+                background: 'var(--bg-elevated)',
+                border: '1px solid var(--border-subtle)',
+                color: 'var(--text-primary)',
                 cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
                 opacity: currentPage === totalPages ? 0.3 : 1,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontFamily: 'var(--font-display)',
+                fontFamily: 'var(--font-body)',
                 fontSize: '12px',
+                borderRadius: '999px',
               }}
             >
               ›

@@ -15,10 +15,10 @@ function SectionHeader({ children }: { children: React.ReactNode }) {
         gap: '10px',
         marginBottom: '14px',
         paddingBottom: '8px',
-        borderBottom: '1px solid rgba(255,43,43,0.12)',
+        borderBottom: '1px solid var(--border-subtle)',
       }}
     >
-      <div style={{ width: '2px', height: '12px', background: 'var(--neon-red)', boxShadow: '0 0 6px var(--neon-red)' }} />
+      <div style={{ width: '2px', height: '12px', background: 'var(--accent)' }} />
       <span
         className="font-display"
         style={{ fontSize: '9px', letterSpacing: '0.2em', fontWeight: 600, color: 'var(--text-secondary)' }}
@@ -29,20 +29,21 @@ function SectionHeader({ children }: { children: React.ReactNode }) {
   );
 }
 
-function FormSection({ children }: { children: React.ReactNode }) {
+function FormSection({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
   return (
     <div
       style={{
-        background: 'rgba(10,10,10,0.85)',
-        backdropFilter: 'blur(12px)',
-        border: '1px solid rgba(255,43,43,0.12)',
-        borderTop: '1px solid rgba(255,43,43,0.35)',
-        padding: '16px',
+        background: 'var(--bg-surface)',
+        backdropFilter: 'blur(16px)',
+        border: '1px solid var(--border-subtle)',
+        padding: '1rem',
         position: 'relative',
-        overflow: 'hidden',
+        overflow: 'visible',
+        borderRadius: '1.2rem',
+        boxShadow: 'var(--shadow-sm)',
+        ...style,
       }}
     >
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, var(--neon-red), transparent)', animation: 'energy-line 7s ease-in-out infinite' }} />
       {children}
     </div>
   );
@@ -54,6 +55,7 @@ export default function EditItem() {
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [tagsOpen, setTagsOpen] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -155,14 +157,14 @@ export default function EditItem() {
         <div
           style={{
             width: '40px', height: '40px',
-            border: '1px solid rgba(255,43,43,0.3)',
-            borderTop: '1px solid var(--neon-red)',
+            border: '1px solid var(--border-subtle)',
+            borderTop: '1px solid var(--accent)',
             borderRadius: '50%',
             animation: 'spin 1s linear infinite',
           }}
         />
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-        <div className="hud-label" style={{ letterSpacing: '0.2em' }}>LOADING RECORD...</div>
+        <div className="hud-label" style={{ letterSpacing: '0.18em' }}>Loading record...</div>
       </div>
     );
   }
@@ -173,17 +175,17 @@ export default function EditItem() {
       {/* Page header */}
       <div style={{ marginBottom: '20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
-          <div style={{ height: '1px', width: '16px', background: 'var(--neon-red)', boxShadow: '0 0 6px var(--neon-red)' }} />
-          <span className="hud-label" style={{ fontSize: '8px', color: 'var(--neon-red)', letterSpacing: '0.25em' }}>
-            MODIFY RECORD
+          <div style={{ height: '1px', width: '16px', background: 'var(--accent)' }} />
+          <span className="hud-label" style={{ fontSize: '8px', color: 'var(--accent)', letterSpacing: '0.18em' }}>
+            Modify record
           </span>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
           <h1
             className="font-display"
-            style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '0.08em', color: 'var(--text-primary)', margin: 0 }}
+            style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '0.01em', color: 'var(--text-primary)', margin: 0 }}
           >
-            EDIT ASSET
+            Edit asset
           </h1>
           <Button variant="ghost" size="sm" onClick={() => navigate(`/${id}`)}>
             CANCEL
@@ -203,7 +205,7 @@ export default function EditItem() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
 
           {/* Basic Info */}
-          <FormSection>
+          <FormSection style={{ zIndex: tagsOpen ? 20 : 1 }}>
             <SectionHeader>IDENTIFICATION</SectionHeader>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '12px' }}>
               <Input
@@ -220,6 +222,7 @@ export default function EditItem() {
                   value={formData.tags}
                   onChange={tags => setFormData(prev => ({ ...prev, tags }))}
                   placeholder="Select or type tags..."
+                  onOpenChange={setTagsOpen}
                 />
               </div>
               <Select
@@ -236,7 +239,7 @@ export default function EditItem() {
           </FormSection>
 
           {/* Purchase Info */}
-          <FormSection>
+          <FormSection style={{ zIndex: 1 }}>
             <SectionHeader>ACQUISITION DATA</SectionHeader>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <Input
@@ -290,9 +293,8 @@ export default function EditItem() {
                     width: '32px',
                     height: '18px',
                     borderRadius: '9px',
-                    background: formData.daily_burn ? 'rgba(255,43,43,0.3)' : 'rgba(255,255,255,0.06)',
-                    border: `1px solid ${formData.daily_burn ? 'rgba(255,43,43,0.6)' : 'rgba(255,255,255,0.1)'}`,
-                    boxShadow: formData.daily_burn ? '0 0 8px rgba(255,43,43,0.3)' : 'none',
+                    background: formData.daily_burn ? 'var(--accent-soft)' : 'var(--bg-secondary)',
+                    border: `1px solid ${formData.daily_burn ? 'var(--accent)' : 'var(--border-subtle)'}`,
                     cursor: 'pointer',
                     position: 'relative',
                     transition: 'all 0.2s ease',
@@ -307,14 +309,13 @@ export default function EditItem() {
                       width: '12px',
                       height: '12px',
                       borderRadius: '50%',
-                      background: formData.daily_burn ? 'var(--neon-red)' : 'rgba(255,255,255,0.3)',
-                      boxShadow: formData.daily_burn ? '0 0 6px var(--neon-red)' : 'none',
+                      background: formData.daily_burn ? 'var(--accent)' : 'var(--text-dim)',
                       transition: 'all 0.2s ease',
                     }}
                   />
                 </button>
                 <span className="hud-label" style={{ fontSize: '8px' }}>
-                  TRACK DAILY BURN
+                  Track daily burn
                 </span>
               </div>
             </div>
@@ -344,9 +345,9 @@ export default function EditItem() {
                 />
               </div>
               <div style={{ marginTop: '12px' }}>
-                <label className="hud-label" style={{ display: 'block', marginBottom: '6px' }}>REASON FOR DIVEST</label>
+                <label className="hud-label" style={{ display: 'block', marginBottom: '6px' }}>Reason for divest</label>
                 <div style={{ position: 'relative' }}>
-                  <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: '2px', background: 'rgba(255,43,43,0.4)' }} />
+                  <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: '2px', background: 'var(--accent)' }} />
                   <textarea
                     name="reason_to_sell"
                     value={formData.reason_to_sell}
@@ -357,21 +358,20 @@ export default function EditItem() {
                       width: '100%',
                       paddingLeft: '14px',
                       paddingRight: '12px',
-                      paddingTop: '10px',
-                      paddingBottom: '10px',
-                      background: 'rgba(8,8,8,0.9)',
-                      border: '1px solid rgba(255,43,43,0.15)',
+                      paddingTop: '12px',
+                      paddingBottom: '12px',
+                      background: 'var(--bg-elevated)',
+                      border: '1px solid var(--border-subtle)',
                       borderLeft: 'none',
                       color: 'var(--text-primary)',
-                      fontFamily: 'var(--font-tech)',
+                      fontFamily: 'var(--font-body)',
                       fontSize: '14px',
                       outline: 'none',
                       resize: 'vertical',
                       lineHeight: 1.6,
                       boxSizing: 'border-box',
+                      borderRadius: '0 0.85rem 0.85rem 0',
                     }}
-                    onFocus={e => { (e.currentTarget).style.borderColor = 'rgba(255,43,43,0.4)'; }}
-                    onBlur={e => { (e.currentTarget).style.borderColor = 'rgba(255,43,43,0.15)'; }}
                   />
                 </div>
               </div>
@@ -382,7 +382,7 @@ export default function EditItem() {
           <FormSection>
             <SectionHeader>NOTES</SectionHeader>
             <div style={{ position: 'relative' }}>
-              <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: '2px', background: 'rgba(255,43,43,0.4)' }} />
+              <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: '2px', background: 'var(--accent)' }} />
               <textarea
                 name="note"
                 value={formData.note}
@@ -393,21 +393,20 @@ export default function EditItem() {
                   width: '100%',
                   paddingLeft: '14px',
                   paddingRight: '12px',
-                  paddingTop: '10px',
-                  paddingBottom: '10px',
-                  background: 'rgba(8,8,8,0.9)',
-                  border: '1px solid rgba(255,43,43,0.15)',
+                  paddingTop: '12px',
+                  paddingBottom: '12px',
+                  background: 'var(--bg-elevated)',
+                  border: '1px solid var(--border-subtle)',
                   borderLeft: 'none',
                   color: 'var(--text-primary)',
-                  fontFamily: 'var(--font-tech)',
+                  fontFamily: 'var(--font-body)',
                   fontSize: '14px',
                   outline: 'none',
                   resize: 'vertical',
                   lineHeight: 1.6,
                   boxSizing: 'border-box',
+                  borderRadius: '0 0.85rem 0.85rem 0',
                 }}
-                onFocus={e => { (e.currentTarget).style.borderColor = 'rgba(255,43,43,0.4)'; }}
-                onBlur={e => { (e.currentTarget).style.borderColor = 'rgba(255,43,43,0.15)'; }}
               />
             </div>
           </FormSection>
@@ -421,12 +420,12 @@ export default function EditItem() {
           bottom: 0,
           left: 0,
           right: 0,
-          maxWidth: '480px',
+          maxWidth: '430px',
           margin: '0 auto',
           padding: '10px 16px',
-          background: 'rgba(5,5,5,0.95)',
+          background: 'color-mix(in srgb, var(--bg-primary) 90%, transparent)',
           backdropFilter: 'blur(20px)',
-          borderTop: '1px solid rgba(255,43,43,0.2)',
+          borderTop: '1px solid var(--border-subtle)',
           display: 'flex',
           gap: '8px',
           zIndex: 20,
@@ -440,7 +439,7 @@ export default function EditItem() {
           disabled={loading}
           onClick={handleSubmit}
         >
-          {loading ? 'UPDATING...' : 'UPDATE ASSET'}
+          {loading ? 'Updating...' : 'Update asset'}
         </Button>
         <Button
           variant="ghost"
@@ -448,7 +447,7 @@ export default function EditItem() {
           onClick={() => navigate(`/${id}`)}
           style={{ minWidth: '80px' }}
         >
-          CANCEL
+          Cancel
         </Button>
       </div>
     </div>

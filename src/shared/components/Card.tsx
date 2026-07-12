@@ -10,12 +10,8 @@ interface CardProps {
 export default function Card({ children, className, style }: CardProps) {
   return (
     <div
-      className={cn('holo-card corner-bracket', className)}
-      style={{
-        padding: '20px',
-        borderRadius: '2px',
-        ...style,
-      }}
+      className={cn('ui-card', className)}
+      style={style}
     >
       {children}
     </div>

@@ -1,47 +1,36 @@
 import { Link, useLocation } from 'react-router-dom';
-import { useEffect } from 'react';
+import ThemeToggle from '../shared/components/ThemeToggle';
 
 export default function Navbar() {
   const location = useLocation();
 
-  useEffect(() => {
-    // Always use dark mode
-    document.documentElement.classList.add('dark');
-  }, []);
-
   const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + '/');
 
   return (
-    <nav className="bg-gray-900/80 backdrop-blur-sm border-b border-gray-700/50">
-      <div className="max-w-md mx-auto px-4">
-        <div className="flex justify-between items-center h-14">
-          <Link to="/" className="flex items-center">
-            <span className="text-lg font-bold bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent">
-              Pantagon Items
+    <nav style={{ position: 'sticky', top: 0, zIndex: 50, backdropFilter: 'blur(20px)', background: 'color-mix(in srgb, var(--bg-primary) 84%, transparent)', borderBottom: '1px solid var(--border-subtle)' }}>
+      <div className="mx-auto max-w-[720px] px-4">
+        <div className="flex min-h-16 items-center justify-between gap-4">
+          <Link to="/" className="flex items-center gap-3 text-[1rem] font-semibold text-[var(--text-primary)] no-underline">
+            <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] shadow-[var(--shadow-sm)]">
+              <span className="h-3 w-3 rounded-full bg-[var(--accent)]" />
             </span>
+            Pantagon Items
           </Link>
-          
-          <div className="flex gap-6">
+
+          <div className="flex items-center gap-2">
             <Link
               to="/"
-              className={`text-sm font-medium transition-colors ${
-                isActive('/') && location.pathname === '/'
-                  ? 'text-blue-400'
-                  : 'text-gray-400 hover:text-white'
-              }`}
+              className={`ui-button ui-button--sm ${isActive('/') && location.pathname === '/' ? 'ui-button--primary' : 'ui-button--secondary'}`}
             >
               Dashboard
             </Link>
             <Link
               to="/items"
-              className={`text-sm font-medium transition-colors ${
-                isActive('/items')
-                  ? 'text-blue-400'
-                  : 'text-gray-400 hover:text-white'
-              }`}
+              className={`ui-button ui-button--sm ${isActive('/items') ? 'ui-button--primary' : 'ui-button--secondary'}`}
             >
               Items
             </Link>
+            <ThemeToggle />
           </div>
         </div>
       </div>

@@ -14,7 +14,7 @@ function DataRow({ label, value, accent }: { label: string; value: string | Reac
         justifyContent: 'space-between',
         alignItems: 'flex-start',
         padding: '10px 0',
-        borderBottom: '1px solid rgba(255,255,255,0.04)',
+        borderBottom: '1px solid var(--border-subtle)',
         gap: '8px',
       }}
     >
@@ -44,17 +44,17 @@ function PanelHeader({ label, icon }: { label: string; icon?: React.ReactNode })
         gap: '8px',
         paddingBottom: '10px',
         marginBottom: '4px',
-        borderBottom: '1px solid rgba(255,43,43,0.15)',
+          borderBottom: '1px solid var(--border-subtle)',
       }}
     >
-      {icon && <div style={{ color: 'rgba(255,43,43,0.7)' }}>{icon}</div>}
+      {icon && <div style={{ color: 'var(--accent)' }}>{icon}</div>}
       <span
         className="font-display"
         style={{ fontSize: '9px', letterSpacing: '0.2em', fontWeight: 600, color: 'var(--text-secondary)' }}
       >
         {label}
       </span>
-      <div style={{ flex: 1, height: '1px', background: 'linear-gradient(90deg, rgba(255,43,43,0.2), transparent)' }} />
+      <div style={{ flex: 1, height: '1px', background: 'linear-gradient(90deg, color-mix(in srgb, var(--accent) 28%, transparent), transparent)' }} />
     </div>
   );
 }
@@ -101,14 +101,14 @@ export default function ItemDetails() {
         <div
           style={{
             width: '40px', height: '40px',
-            border: '1px solid rgba(255,43,43,0.3)',
-            borderTop: '1px solid var(--neon-red)',
+            border: '1px solid var(--border-subtle)',
+            borderTop: '1px solid var(--accent)',
             borderRadius: '50%',
             animation: 'spin 1s linear infinite',
           }}
         />
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-        <div className="hud-label" style={{ letterSpacing: '0.2em' }}>ACCESSING RECORD...</div>
+        <div className="hud-label" style={{ letterSpacing: '0.18em' }}>Accessing record...</div>
       </div>
     );
   }
@@ -118,13 +118,13 @@ export default function ItemDetails() {
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', textAlign: 'center', gap: '12px' }}>
         <div
           className="font-display"
-          style={{ fontSize: '36px', color: 'rgba(255,43,43,0.2)', fontWeight: 900, letterSpacing: '0.1em' }}
+          style={{ fontSize: '36px', color: 'var(--text-dim)', fontWeight: 700, letterSpacing: '0.02em' }}
         >
           404
         </div>
-        <div className="font-display" style={{ fontSize: '10px', letterSpacing: '0.2em', color: 'var(--text-dim)' }}>RECORD NOT FOUND</div>
+        <div className="font-display" style={{ fontSize: '10px', letterSpacing: '0.06em', color: 'var(--text-dim)' }}>Record not found</div>
         <Button onClick={() => navigate('/')} variant="secondary" size="sm">
-          ← RETURN TO GRID
+          Return to dashboard
         </Button>
       </div>
     );
@@ -139,32 +139,31 @@ export default function ItemDetails() {
     <div style={{ paddingBottom: '100px' }}>
 
       {/* ── Back + Header ── */}
-      <div style={{ paddingTop: '8px', marginBottom: '16px', animation: 'slide-up 0.4s ease both' }}>
+      <div style={{ paddingTop: '8px', marginBottom: '16px', animation: 'fade-up 0.4s ease both' }}>
         <button
           onClick={() => navigate('/')}
           className="font-display"
           style={{
-            background: 'none',
-            border: 'none',
-            color: 'var(--text-dim)',
-            fontSize: '8px',
-            letterSpacing: '0.15em',
+            background: 'transparent',
+            border: '1px solid var(--border-subtle)',
+            color: 'var(--text-secondary)',
+            fontSize: '0.72rem',
+            letterSpacing: '0.08em',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
-            padding: '0 0 12px 0',
-            transition: 'color 0.2s ease',
+            padding: '0.5rem 0.8rem',
+            borderRadius: '999px',
+            transition: 'all 0.16s ease',
           }}
-          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'var(--neon-red)'; }}
-          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'var(--text-dim)'; }}
         >
-          ‹ ASSET REGISTRY
+          Back to dashboard
         </button>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-          <div style={{ height: '1px', width: '16px', background: 'var(--neon-red)', boxShadow: '0 0 6px var(--neon-red)' }} />
-          <span className="hud-label" style={{ fontSize: '8px', color: 'var(--neon-red)' }}>ASSET DETAIL</span>
+          <div style={{ height: '1px', width: '16px', background: 'var(--accent)' }} />
+          <span className="hud-label" style={{ fontSize: '8px', color: 'var(--accent)' }}>Asset detail</span>
         </div>
 
         <h1
@@ -174,7 +173,7 @@ export default function ItemDetails() {
             fontWeight: 700,
             color: 'var(--text-primary)',
             margin: '0 0 10px 0',
-            letterSpacing: '0.02em',
+            letterSpacing: '0.01em',
           }}
         >
           {item.name}
@@ -199,9 +198,9 @@ export default function ItemDetails() {
                     letterSpacing: '0.12em',
                     textTransform: 'uppercase',
                     padding: '2px 8px',
-                    background: 'rgba(255,43,43,0.07)',
-                    border: '1px solid rgba(255,43,43,0.2)',
-                    color: 'rgba(255,90,90,0.7)',
+                    background: 'var(--accent-soft)',
+                    border: '1px solid var(--border-subtle)',
+                    color: 'var(--accent-strong)',
                   }}
                 >
                   {tag}
@@ -215,26 +214,25 @@ export default function ItemDetails() {
       {/* ── Financial panel ── */}
       <div
         style={{
-          background: 'rgba(10,10,10,0.85)',
-          backdropFilter: 'blur(12px)',
-          border: '1px solid rgba(255,43,43,0.15)',
-          borderTop: '1px solid rgba(255,43,43,0.4)',
-          padding: '16px',
+          background: 'var(--bg-surface)',
+          backdropFilter: 'blur(16px)',
+          border: '1px solid var(--border-subtle)',
+          padding: '1rem',
           marginBottom: '8px',
           position: 'relative',
           overflow: 'hidden',
-          animation: 'slide-up 0.4s ease 0.05s both',
+          animation: 'fade-up 0.4s ease 0.05s both',
+          borderRadius: '1.2rem',
+          boxShadow: 'var(--shadow-sm)',
         }}
       >
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, var(--neon-red), transparent)', animation: 'energy-line 6s ease-in-out infinite' }} />
-
         <PanelHeader
           label="FINANCIAL DATA"
           icon={<svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="square" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
         />
 
         {/* Key financial figures */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1px', background: 'rgba(255,43,43,0.08)', marginBottom: '12px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1px', background: 'var(--border-subtle)', marginBottom: '12px' }}>
           {[
             { label: 'BUY PRICE', value: formatCurrency(item.buy_price), accent: 'var(--text-primary)' },
             { label: 'TOTAL COST', value: formatCurrency(enriched.real_cost), accent: '#9A9AFF' },
@@ -246,7 +244,7 @@ export default function ItemDetails() {
             <div
               key={label}
               style={{
-                background: 'rgba(8,8,8,0.9)',
+                background: 'var(--bg-elevated)',
                 padding: '12px',
                 display: 'flex',
                 flexDirection: 'column',
@@ -256,7 +254,7 @@ export default function ItemDetails() {
               <div className="hud-label" style={{ fontSize: '7px' }}>{label}</div>
               <div
                 className="font-tech"
-                style={{ fontSize: '18px', fontWeight: 700, color: accent, textShadow: `0 0 10px ${accent}50` }}
+                  style={{ fontSize: '18px', fontWeight: 700, color: accent }}
               >
                 {value}
               </div>
@@ -272,19 +270,18 @@ export default function ItemDetails() {
       {/* ── Performance panel ── */}
       <div
         style={{
-          background: 'rgba(10,10,10,0.85)',
-          backdropFilter: 'blur(12px)',
-          border: '1px solid rgba(255,43,43,0.15)',
-          borderTop: '1px solid rgba(255,43,43,0.4)',
-          padding: '16px',
+          background: 'var(--bg-surface)',
+          backdropFilter: 'blur(16px)',
+          border: '1px solid var(--border-subtle)',
+          padding: '1rem',
           marginBottom: '8px',
           position: 'relative',
           overflow: 'hidden',
-          animation: 'slide-up 0.4s ease 0.1s both',
+          animation: 'fade-up 0.4s ease 0.1s both',
+          borderRadius: '1.2rem',
+          boxShadow: 'var(--shadow-sm)',
         }}
       >
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, var(--neon-red), transparent)', animation: 'energy-line 8s ease-in-out infinite 2s' }} />
-
         <PanelHeader
           label="PERFORMANCE METRICS"
           icon={<svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="square" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>}
@@ -293,56 +290,55 @@ export default function ItemDetails() {
         {/* Daily burn highlight */}
         <div
           style={{
-            background: 'rgba(255,43,43,0.06)',
-            border: '1px solid rgba(255,43,43,0.2)',
+            background: 'var(--accent-soft)',
+            border: '1px solid var(--border-subtle)',
             padding: '12px',
             marginBottom: '8px',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
+            borderRadius: '1rem',
           }}
         >
           <div>
-            <div className="hud-label" style={{ fontSize: '8px', marginBottom: '4px' }}>DAILY BURN RATE</div>
-            {!isOwned && <div className="hud-label" style={{ fontSize: '7px', color: 'var(--text-dim)' }}>AVG WHILE OWNED</div>}
+            <div className="hud-label" style={{ fontSize: '8px', marginBottom: '4px' }}>Daily burn rate</div>
+            {!isOwned && <div className="hud-label" style={{ fontSize: '7px', color: 'var(--text-dim)' }}>Average while owned</div>}
           </div>
           <div
             className="font-display"
             style={{
               fontSize: '20px',
               fontWeight: 700,
-              color: 'var(--neon-red)',
-              textShadow: '0 0 12px rgba(255,43,43,0.6)',
+              color: 'var(--accent)',
             }}
           >
             {formatCurrency(isOwned ? (enriched.cost_per_day || 0) : (enriched.avg_cost_per_day_sold || 0))}
-            <span style={{ fontSize: '10px', fontWeight: 400, color: 'var(--text-dim)', letterSpacing: '0.1em' }}>/DAY</span>
+            <span style={{ fontSize: '10px', fontWeight: 400, color: 'var(--text-dim)', letterSpacing: '0.1em' }}>/day</span>
           </div>
         </div>
 
-        <DataRow label="DAYS HELD" value={`${enriched.days_held} DAYS`} />
-        <DataRow label="ACQUIRED" value={format(new Date(item.buy_date), 'MMM d, yyyy').toUpperCase()} />
+        <DataRow label="Days held" value={`${enriched.days_held} days`} />
+        <DataRow label="Acquired" value={format(new Date(item.buy_date), 'MMM d, yyyy').toUpperCase()} />
         {item.sell_date && (
-          <DataRow label="DIVESTED" value={format(new Date(item.sell_date), 'MMM d, yyyy').toUpperCase()} />
+          <DataRow label="Divested" value={format(new Date(item.sell_date), 'MMM d, yyyy').toUpperCase()} />
         )}
       </div>
 
       {/* ── Details panel ── */}
       <div
         style={{
-          background: 'rgba(10,10,10,0.85)',
-          backdropFilter: 'blur(12px)',
-          border: '1px solid rgba(255,43,43,0.15)',
-          borderTop: '1px solid rgba(255,43,43,0.4)',
-          padding: '16px',
+          background: 'var(--bg-surface)',
+          backdropFilter: 'blur(16px)',
+          border: '1px solid var(--border-subtle)',
+          padding: '1rem',
           marginBottom: '8px',
           position: 'relative',
           overflow: 'hidden',
-          animation: 'slide-up 0.4s ease 0.15s both',
+          animation: 'fade-up 0.4s ease 0.15s both',
+          borderRadius: '1.2rem',
+          boxShadow: 'var(--shadow-sm)',
         }}
       >
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, var(--neon-red), transparent)', animation: 'energy-line 10s ease-in-out infinite 1s' }} />
-
         <PanelHeader
           label="METADATA"
           icon={<svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="square" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>}
@@ -364,11 +360,12 @@ export default function ItemDetails() {
               style={{
                 fontSize: '13px',
                 color: 'var(--text-secondary)',
-                background: 'rgba(5,5,5,0.6)',
-                border: '1px solid rgba(255,255,255,0.05)',
-                borderLeft: '2px solid rgba(255,43,43,0.3)',
+                background: 'var(--bg-elevated)',
+                border: '1px solid var(--border-subtle)',
+                borderLeft: '2px solid var(--accent)',
                 padding: '10px 12px',
                 lineHeight: 1.6,
+                borderRadius: '0.85rem',
               }}
             >
               {item.note}
@@ -384,11 +381,12 @@ export default function ItemDetails() {
               style={{
                 fontSize: '13px',
                 color: 'var(--text-secondary)',
-                background: 'rgba(5,5,5,0.6)',
-                border: '1px solid rgba(255,255,255,0.05)',
-                borderLeft: '2px solid rgba(255,43,43,0.3)',
+                background: 'var(--bg-elevated)',
+                border: '1px solid var(--border-subtle)',
+                borderLeft: '2px solid var(--accent)',
                 padding: '10px 12px',
                 lineHeight: 1.6,
+                borderRadius: '0.85rem',
               }}
             >
               {item.reason_to_sell}
@@ -398,7 +396,7 @@ export default function ItemDetails() {
 
         <div
           className="hud-label"
-          style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.04)', fontSize: '7px', display: 'flex', justifyContent: 'space-between' }}
+          style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid var(--border-subtle)', fontSize: '7px', display: 'flex', justifyContent: 'space-between' }}
         >
           <span>CREATED {format(new Date(item.created_at), 'yyyy-MM-dd HH:mm')}</span>
           <span>UPDATED {format(new Date(item.updated_at), 'yyyy-MM-dd HH:mm')}</span>
@@ -413,12 +411,12 @@ export default function ItemDetails() {
           left: 0,
           right: 0,
           zIndex: 20,
-          maxWidth: '480px',
+          maxWidth: '430px',
           margin: '0 auto',
           padding: '10px 16px',
-          background: 'rgba(5,5,5,0.95)',
+          background: 'color-mix(in srgb, var(--bg-primary) 90%, transparent)',
           backdropFilter: 'blur(20px)',
-          borderTop: '1px solid rgba(255,43,43,0.2)',
+          borderTop: '1px solid var(--border-subtle)',
           display: 'flex',
           gap: '8px',
         }}
@@ -429,7 +427,7 @@ export default function ItemDetails() {
           size="lg"
           style={{ flex: 1 }}
         >
-          EDIT ASSET
+          Edit asset
         </Button>
         <Button
           variant="danger"
@@ -437,7 +435,7 @@ export default function ItemDetails() {
           size="lg"
           style={{ flexShrink: 0, minWidth: '80px' }}
         >
-          DELETE
+          Delete
         </Button>
       </div>
     </div>
