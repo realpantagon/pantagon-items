@@ -12,7 +12,7 @@ export default function ItemsAppLayout({ children }: ItemsAppLayoutProps) {
         <ItemsNavbar />
       </div>
 
-      <main style={{ position: 'relative', zIndex: 1, maxWidth: '430px', margin: '0 auto', padding: '0.9rem 0.9rem 5.5rem' }}>
+      <main style={{ position: 'relative', zIndex: 1, maxWidth: '760px', margin: '0 auto', padding: '1rem 0.95rem 6rem' }}>
         {children}
       </main>
     </div>

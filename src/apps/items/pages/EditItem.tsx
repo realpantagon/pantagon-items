@@ -1,10 +1,19 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../../shared/utils/supabase';
 import Button from '../../../shared/components/Button';
 import Input from '../../../shared/components/Input';
 import Select from '../../../shared/components/Select';
 import TagInput from '../components/TagInput';
+import ExtraCostEditor from '../components/ExtraCostEditor';
+import type { ExtraCostDetail } from '../utils/extraCostDetails';
+import {
+  getExtraCostsTotal,
+  parseExtraCostDetails,
+  parseLegacyExtraCostsFromNote,
+  serializeExtraCostDetails,
+  stripLegacyExtraCostsFromNote,
+} from '../utils/extraCostDetails';
 
 function SectionHeader({ children }: { children: React.ReactNode }) {
   return (
@@ -50,19 +59,21 @@ function FormSection({ children, style }: { children: React.ReactNode; style?: R
 }
 
 export default function EditItem() {
+  const MIN_NOTE_TEXTAREA_HEIGHT = 220;
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [tagsOpen, setTagsOpen] = useState(false);
+  const noteTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const [extraCostDetails, setExtraCostDetails] = useState<ExtraCostDetail[]>([]);
 
   const [formData, setFormData] = useState({
     name: '',
     tags: [] as string[],
     buy_date: '',
     buy_price: '',
-    extra_cost: '0',
     sell_date: '',
     sell_price: '',
     status: 'owned',
@@ -75,26 +86,51 @@ export default function EditItem() {
 
   useEffect(() => { if (id) fetchItem(id); }, [id]);
 
+  const autoResizeTextarea = (textarea: HTMLTextAreaElement | null) => {
+    if (!textarea) return;
+    textarea.style.height = 'auto';
+    textarea.style.height = `${Math.max(textarea.scrollHeight, MIN_NOTE_TEXTAREA_HEIGHT)}px`;
+  };
+
+  useEffect(() => {
+    autoResizeTextarea(noteTextareaRef.current);
+  }, [formData.note]);
+
   const fetchItem = async (itemId: string) => {
     try {
       const { data, error } = await supabase.from('Pantagon_items').select('*').eq('id', itemId).single();
       if (error) throw error;
       if (data) {
+        const dbExtraCosts = parseExtraCostDetails(data.extra_cost_details);
+        const legacyExtraCosts = parseLegacyExtraCostsFromNote(data.note || '');
+        const loadedExtraCosts = dbExtraCosts.length > 0
+          ? dbExtraCosts
+          : legacyExtraCosts.length > 0
+            ? legacyExtraCosts
+          : (data.extra_cost > 0
+              ? [{
+                  id: 'legacy-extra-cost',
+                  label: 'Existing extra cost',
+                  amount: data.extra_cost,
+                  date: data.buy_date || '',
+                }]
+              : []);
+
         setFormData({
           name: data.name,
           tags: data.tags || [],
           buy_date: data.buy_date,
           buy_price: data.buy_price.toString(),
-          extra_cost: data.extra_cost.toString(),
           sell_date: data.sell_date || '',
           sell_price: data.sell_price?.toString() || '',
           status: data.status,
           purchase_source: data.purchase_source || '',
           warranty_expire_date: data.warranty_expire_date || '',
           reason_to_sell: data.reason_to_sell || '',
-          note: data.note || '',
+          note: stripLegacyExtraCostsFromNote(data.note || ''),
           daily_burn: data.daily_burn !== false,
         });
+        setExtraCostDetails(loadedExtraCosts);
       }
     } catch (error) {
       console.error('Error fetching item:', error);
@@ -125,12 +161,15 @@ export default function EditItem() {
     if (!validate() || !id) return;
     setLoading(true);
     try {
+      const extraCostTotal = getExtraCostsTotal(extraCostDetails);
+      const normalizedExtraCosts = serializeExtraCostDetails(extraCostDetails);
       const { error } = await supabase.from('Pantagon_items').update({
         name: formData.name.trim(),
         tags: formData.tags,
         buy_date: formData.buy_date,
         buy_price: parseFloat(formData.buy_price),
-        extra_cost: parseFloat(formData.extra_cost) || 0,
+        extra_cost: extraCostTotal,
+        extra_cost_details: normalizedExtraCosts,
         sell_date: formData.sell_date || null,
         sell_price: formData.sell_price ? parseFloat(formData.sell_price) : null,
         status: formData.status,
@@ -188,7 +227,7 @@ export default function EditItem() {
             Edit asset
           </h1>
           <Button variant="ghost" size="sm" onClick={() => navigate(`/${id}`)}>
-            CANCEL
+            Cancel
           </Button>
         </div>
         {formData.name && (
@@ -261,15 +300,6 @@ export default function EditItem() {
                 placeholder="0.00"
               />
               <Input
-                label="EXTRA COST ฿"
-                name="extra_cost"
-                type="number"
-                step="0.01"
-                value={formData.extra_cost}
-                onChange={handleChange}
-                placeholder="0.00"
-              />
-              <Input
                 label="SOURCE"
                 name="purchase_source"
                 value={formData.purchase_source}
@@ -319,6 +349,14 @@ export default function EditItem() {
                 </span>
               </div>
             </div>
+          </FormSection>
+
+          <FormSection>
+            <SectionHeader>EXTRA COST DETAILS</SectionHeader>
+            <ExtraCostEditor
+              value={extraCostDetails}
+              onChange={setExtraCostDetails}
+            />
           </FormSection>
 
           {/* Sell Info (conditional) */}
@@ -384,10 +422,14 @@ export default function EditItem() {
             <div style={{ position: 'relative' }}>
               <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: '2px', background: 'var(--accent)' }} />
               <textarea
+                ref={noteTextareaRef}
                 name="note"
                 value={formData.note}
-                onChange={handleChange}
-                rows={4}
+                onChange={e => {
+                  handleChange(e);
+                  autoResizeTextarea(e.currentTarget);
+                }}
+                rows={9}
                 placeholder="Additional notes about this asset..."
                 style={{
                   width: '100%',
@@ -402,10 +444,12 @@ export default function EditItem() {
                   fontFamily: 'var(--font-body)',
                   fontSize: '14px',
                   outline: 'none',
-                  resize: 'vertical',
+                  resize: 'none',
                   lineHeight: 1.6,
                   boxSizing: 'border-box',
                   borderRadius: '0 0.85rem 0.85rem 0',
+                  overflow: 'hidden',
+                  minHeight: `${MIN_NOTE_TEXTAREA_HEIGHT}px`,
                 }}
               />
             </div>
@@ -440,14 +484,6 @@ export default function EditItem() {
           onClick={handleSubmit}
         >
           {loading ? 'Updating...' : 'Update asset'}
-        </Button>
-        <Button
-          variant="ghost"
-          size="lg"
-          onClick={() => navigate(`/${id}`)}
-          style={{ minWidth: '80px' }}
-        >
-          Cancel
         </Button>
       </div>
     </div>

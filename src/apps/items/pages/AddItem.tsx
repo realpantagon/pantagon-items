@@ -6,6 +6,9 @@ import Button from '../../../shared/components/Button';
 import Input from '../../../shared/components/Input';
 import Select from '../../../shared/components/Select';
 import TagInput from '../components/TagInput';
+import ExtraCostEditor from '../components/ExtraCostEditor';
+import type { ExtraCostDetail } from '../utils/extraCostDetails';
+import { getExtraCostsTotal, serializeExtraCostDetails } from '../utils/extraCostDetails';
 
 function SectionHeader({ children }: { children: React.ReactNode }) {
   return (
@@ -55,13 +58,13 @@ export default function AddItem() {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [tagsOpen, setTagsOpen] = useState(false);
+  const [extraCostDetails, setExtraCostDetails] = useState<ExtraCostDetail[]>([]);
 
   const [formData, setFormData] = useState({
     name: '',
     tags: [] as string[],
     buy_date: format(new Date(), 'yyyy-MM-dd'),
     buy_price: '',
-    extra_cost: '0',
     sell_date: '',
     sell_price: '',
     purchase_source: '',
@@ -92,12 +95,15 @@ export default function AddItem() {
     if (!validate()) return;
     setLoading(true);
     try {
+      const extraCostTotal = getExtraCostsTotal(extraCostDetails);
+      const normalizedExtraCosts = serializeExtraCostDetails(extraCostDetails);
       const { error } = await supabase.from('Pantagon_items').insert([{
         name: formData.name.trim(),
         tags: formData.tags,
         buy_date: formData.buy_date,
         buy_price: parseFloat(formData.buy_price),
-        extra_cost: parseFloat(formData.extra_cost) || 0,
+        extra_cost: extraCostTotal,
+        extra_cost_details: normalizedExtraCosts,
         purchase_source: formData.purchase_source.trim() || null,
         status: formData.status,
         warranty_expire_date: formData.warranty_expire_date || null,
@@ -200,15 +206,6 @@ export default function AddItem() {
                 placeholder="0.00"
               />
               <Input
-                label="EXTRA COST ฿"
-                name="extra_cost"
-                type="number"
-                step="0.01"
-                value={formData.extra_cost}
-                onChange={handleChange}
-                placeholder="0.00"
-              />
-              <Input
                 label="SOURCE"
                 name="purchase_source"
                 value={formData.purchase_source}
@@ -258,6 +255,14 @@ export default function AddItem() {
                 </span>
               </div>
             </div>
+          </FormSection>
+
+          <FormSection>
+            <SectionHeader>EXTRA COST DETAILS</SectionHeader>
+            <ExtraCostEditor
+              value={extraCostDetails}
+              onChange={setExtraCostDetails}
+            />
           </FormSection>
 
           {/* Sell Info (conditional) */}

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../shared/utils/supabase';
+import { tagChipStyle } from '../utils/tagColor';
 
 interface TagInputProps {
   value: string[];
@@ -99,14 +100,14 @@ export default function TagInput({ value = [], onChange, placeholder = 'Add tags
           display: 'flex',
           flexWrap: 'wrap',
           gap: '6px',
-          padding: '0.68rem 0.85rem',
-          background: 'var(--bg-elevated)',
+          padding: '0.72rem 0.9rem',
+          background: 'color-mix(in srgb, var(--bg-elevated) 88%, transparent)',
           border: `1px solid ${focused ? 'color-mix(in srgb, var(--accent) 34%, transparent)' : 'var(--border-subtle)'}`,
           boxShadow: focused ? '0 0 0 4px var(--accent-soft)' : 'none',
-          minHeight: '40px',
+          minHeight: '44px',
           alignItems: 'center',
           transition: 'all 0.2s ease',
-          borderRadius: '0.9rem',
+          borderRadius: '1rem',
           position: 'relative',
         }}
       >
@@ -114,18 +115,13 @@ export default function TagInput({ value = [], onChange, placeholder = 'Add tags
         {safeValue.map(tag => (
           <span
             key={tag}
+            className="tag-chip"
             style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              padding: '2px 8px',
-              background: 'var(--accent-soft)',
-              border: '1px solid var(--border-subtle)',
-              color: 'var(--accent-strong)',
-              fontFamily: 'var(--font-display)',
-              fontSize: '8px',
-              letterSpacing: '0.12em',
-              textTransform: 'uppercase',
+              ...tagChipStyle(tag),
+              padding: '3px 9px',
+              fontSize: '0.72rem',
+              letterSpacing: '0.01em',
+              fontWeight: 600,
             }}
           >
             {tag}
@@ -135,7 +131,8 @@ export default function TagInput({ value = [], onChange, placeholder = 'Add tags
               style={{
                 background: 'none',
                 border: 'none',
-                color: 'var(--text-dim)',
+                color: 'currentColor',
+                opacity: 0.6,
                 cursor: 'pointer',
                 padding: 0,
                 lineHeight: 1,
@@ -171,7 +168,7 @@ export default function TagInput({ value = [], onChange, placeholder = 'Add tags
             outline: 'none',
             color: 'var(--text-primary)',
             fontFamily: 'var(--font-body)',
-            fontSize: '13px',
+            fontSize: '14px',
             minWidth: '80px',
           }}
         />
@@ -187,7 +184,7 @@ export default function TagInput({ value = [], onChange, placeholder = 'Add tags
             right: 0,
             background: 'var(--bg-elevated)',
             border: '1px solid var(--border-subtle)',
-            borderRadius: '0.9rem',
+            borderRadius: '1rem',
             boxShadow: 'var(--shadow-md)',
             maxHeight: '156px',
             overflowY: 'auto',
@@ -203,13 +200,13 @@ export default function TagInput({ value = [], onChange, placeholder = 'Add tags
                 display: 'block',
                 width: '100%',
                 textAlign: 'left',
-                padding: '8px 12px',
+                padding: '9px 12px',
                 background: 'transparent',
                 border: 'none',
                 borderBottom: '1px solid var(--border-subtle)',
                 color: 'var(--text-secondary)',
                 fontFamily: 'var(--font-body)',
-                fontSize: '13px',
+                fontSize: '14px',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
               }}

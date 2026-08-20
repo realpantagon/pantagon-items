@@ -4,7 +4,13 @@ import { supabase } from '../../../shared/utils/supabase';
 import type { PantagonItem } from '../../../api/items/types';
 import { enrichItemWithMetrics, formatCurrency } from '../../../api/items/calculations';
 import { format } from 'date-fns';
+import { tagChipStyle } from '../utils/tagColor';
 import Button from '../../../shared/components/Button';
+import {
+  parseExtraCostDetails,
+  parseLegacyExtraCostsFromNote,
+  stripLegacyExtraCostsFromNote,
+} from '../utils/extraCostDetails';
 
 function DataRow({ label, value, accent }: { label: string; value: string | React.ReactNode; accent?: string }) {
   return (
@@ -64,6 +70,7 @@ export default function ItemDetails() {
   const navigate = useNavigate();
   const [item, setItem] = useState<PantagonItem | null>(null);
   const [loading, setLoading] = useState(true);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   useEffect(() => { if (id) fetchItem(id); }, [id]);
 
@@ -133,13 +140,17 @@ export default function ItemDetails() {
   const enriched = enrichItemWithMetrics(item);
   const isOwned = item.status === 'owned';
   const profit = enriched.profit || 0;
-  const profitColor = profit >= 0 ? '#00E676' : '#FF5A5A';
+  const profitColor = profit >= 0 ? 'var(--gain)' : 'var(--loss)';
+  const extraCostRows = parseExtraCostDetails(item.extra_cost_details).length > 0
+    ? parseExtraCostDetails(item.extra_cost_details)
+    : parseLegacyExtraCostsFromNote(item.note);
+  const cleanNote = stripLegacyExtraCostsFromNote(item.note);
 
   return (
     <div style={{ paddingBottom: '100px' }}>
 
       {/* ── Back + Header ── */}
-      <div style={{ paddingTop: '8px', marginBottom: '16px', animation: 'fade-up 0.4s ease both' }}>
+      <div style={{ paddingTop: '14px', marginBottom: '16px', animation: 'fade-up 0.4s ease both' }}>
         <button
           onClick={() => navigate('/')}
           className="font-display"
@@ -153,15 +164,16 @@ export default function ItemDetails() {
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
-            padding: '0.5rem 0.8rem',
+            padding: '0.5rem 0.9rem',
             borderRadius: '999px',
             transition: 'all 0.16s ease',
+            marginBottom: '20px',
           }}
         >
           Back to dashboard
         </button>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
           <div style={{ height: '1px', width: '16px', background: 'var(--accent)' }} />
           <span className="hud-label" style={{ fontSize: '8px', color: 'var(--accent)' }}>Asset detail</span>
         </div>
@@ -192,15 +204,13 @@ export default function ItemDetails() {
               {item.tags.map(tag => (
                 <span
                   key={tag}
-                  className="font-display"
+                  className="tag-chip"
                   style={{
-                    fontSize: '7px',
-                    letterSpacing: '0.12em',
-                    textTransform: 'uppercase',
-                    padding: '2px 8px',
-                    background: 'var(--accent-soft)',
-                    border: '1px solid var(--border-subtle)',
-                    color: 'var(--accent-strong)',
+                    ...tagChipStyle(tag),
+                    fontSize: '0.66rem',
+                    letterSpacing: '0.02em',
+                    fontWeight: 600,
+                    padding: '2px 9px',
                   }}
                 >
                   {tag}
@@ -235,7 +245,7 @@ export default function ItemDetails() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1px', background: 'var(--border-subtle)', marginBottom: '12px' }}>
           {[
             { label: 'BUY PRICE', value: formatCurrency(item.buy_price), accent: 'var(--text-primary)' },
-            { label: 'TOTAL COST', value: formatCurrency(enriched.real_cost), accent: '#9A9AFF' },
+            { label: 'TOTAL COST', value: formatCurrency(enriched.real_cost), accent: 'var(--text-primary)' },
             ...(item.sell_price ? [
               { label: 'SELL PRICE', value: formatCurrency(item.sell_price), accent: 'var(--text-primary)' },
               { label: 'NET PROFIT', value: formatCurrency(profit), accent: profitColor },
@@ -264,6 +274,37 @@ export default function ItemDetails() {
 
         {item.extra_cost > 0 && (
           <DataRow label="EXTRA COSTS" value={formatCurrency(item.extra_cost)} />
+        )}
+
+        {extraCostRows.length > 0 && (
+          <div style={{ marginTop: '10px', border: '1px solid var(--border-subtle)', borderRadius: '0.9rem', overflow: 'hidden' }}>
+            <div className="hud-label" style={{ fontSize: '7px', padding: '8px 10px', borderBottom: '1px solid var(--border-subtle)' }}>
+              EXTRA COST BREAKDOWN
+            </div>
+            {extraCostRows.map(row => (
+              <div
+                key={row.id}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1.2fr auto',
+                  gap: '8px',
+                  padding: '9px 10px',
+                  borderBottom: '1px solid var(--border-subtle)',
+                  background: 'var(--bg-elevated)',
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: '13px', color: 'var(--text-primary)', fontWeight: 600 }}>{row.label}</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-dim)' }}>
+                    {row.date || '-'}
+                  </div>
+                </div>
+                <div style={{ fontSize: '13px', color: 'var(--text-primary)', fontWeight: 600, textAlign: 'right' }}>
+                  {formatCurrency(row.amount)}
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </div>
 
@@ -352,7 +393,7 @@ export default function ItemDetails() {
           />
         )}
 
-        {item.note && (
+        {cleanNote && (
           <div style={{ marginTop: '10px' }}>
             <div className="hud-label" style={{ fontSize: '8px', marginBottom: '6px' }}>NOTES</div>
             <div
@@ -366,9 +407,11 @@ export default function ItemDetails() {
                 padding: '10px 12px',
                 lineHeight: 1.6,
                 borderRadius: '0.85rem',
+                whiteSpace: 'pre-wrap',
+                overflowWrap: 'anywhere',
               }}
             >
-              {item.note}
+              {cleanNote}
             </div>
           </div>
         )}
@@ -404,6 +447,35 @@ export default function ItemDetails() {
       </div>
 
       {/* ── Fixed action bar ── */}
+      {deleteConfirmOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '78px',
+            left: 0,
+            right: 0,
+            zIndex: 21,
+            maxWidth: '430px',
+            margin: '0 auto',
+            padding: '0 16px',
+          }}
+        >
+          <div style={{ border: '1px solid color-mix(in srgb, var(--accent) 40%, var(--border-subtle))', background: 'var(--bg-elevated)', borderRadius: '1rem', padding: '10px' }}>
+            <div style={{ color: 'var(--text-secondary)', fontSize: '0.84rem', marginBottom: '8px' }}>
+              Confirm delete this asset?
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <Button variant="ghost" size="md" style={{ flex: 1 }} onClick={() => setDeleteConfirmOpen(false)}>
+                Cancel
+              </Button>
+              <Button variant="danger" size="md" style={{ flex: 1 }} onClick={handleDelete}>
+                Confirm delete
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div
         style={{
           position: 'fixed',
@@ -430,12 +502,21 @@ export default function ItemDetails() {
           Edit asset
         </Button>
         <Button
-          variant="danger"
-          onClick={handleDelete}
+          variant="ghost"
+          onClick={() => setDeleteConfirmOpen(true)}
           size="lg"
-          style={{ flexShrink: 0, minWidth: '80px' }}
+          className="ui-button--icon ui-button--quiet-danger"
+          aria-label="Delete asset"
+          title="Delete asset"
         >
-          Delete
+          <svg width="17" height="17" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.7}
+              d="M6 7h12M10 11v6M14 11v6M6 7l1 12a2 2 0 002 2h6a2 2 0 002-2l1-12M9.5 7V5a1 1 0 011-1h3a1 1 0 011 1v2"
+            />
+          </svg>
         </Button>
       </div>
     </div>

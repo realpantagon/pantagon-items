@@ -12,6 +12,12 @@ export interface PantagonItem {
   warranty_expire_date: string | null;
   reason_to_sell: string | null;
   note: string | null;
+  extra_cost_details: {
+    id: string;
+    label: string;
+    amount: number;
+    date: string;
+  }[] | null;
   daily_burn: boolean;
   created_at: string;
   updated_at: string;
