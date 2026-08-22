@@ -18,6 +18,28 @@ function createRow(): ExtraCostDetail {
   };
 }
 
+interface RowButtonProps {
+  onClick: () => void;
+  variant: 'ghost' | 'danger';
+  label: string;
+  icon: string;
+}
+
+function RowButton({ onClick, variant, label, icon }: RowButtonProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={label}
+      aria-label={label}
+      className={`ui-button ui-button--${variant} ui-button--sm xcost-btn`}
+    >
+      <span className="xcost-btn__label">{label}</span>
+      <span className="xcost-btn__icon" aria-hidden="true">{icon}</span>
+    </button>
+  );
+}
+
 export default function ExtraCostEditor({ value, onChange }: ExtraCostEditorProps) {
   const [editingRowId, setEditingRowId] = useState<string | null>(null);
   const [confirmDeleteRowId, setConfirmDeleteRowId] = useState<string | null>(null);
@@ -66,50 +88,36 @@ export default function ExtraCostEditor({ value, onChange }: ExtraCostEditorProp
           <div style={{ padding: '14px 12px', color: 'var(--text-dim)', fontSize: '0.86rem' }}>กด + เพื่อเพิ่มรายการ</div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {sortedRows.map((row, idx) => {
+            {sortedRows.map(row => {
               const isEditing = editingRowId === row.id;
               const isDeleteConfirm = confirmDeleteRowId === row.id;
 
               return (
-                <div
-                  key={row.id}
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'minmax(190px, 1fr) 118px 148px 74px 88px',
-                    gap: '8px',
-                    padding: '10px 12px',
-                    borderBottom: idx === sortedRows.length - 1 ? 'none' : '1px solid var(--border-subtle)',
-                    alignItems: 'center',
-                    background: 'var(--bg-elevated)',
-                  }}
-                >
+                <div key={row.id} className="xcost-row">
                   {isEditing ? (
                     <input
                       value={row.label}
                       onChange={e => updateRow(row.id, { label: e.target.value })}
-                      placeholder="รายการค่าใช้จ่าย"
-                      className="ui-input"
-                      style={{ border: '1px solid var(--border-subtle)', borderRadius: '0.8rem', background: 'var(--bg-elevated)' }}
+                      placeholder="รายการ"
+                      className="ui-input xcost-input"
                     />
                   ) : (
-                    <div style={{ color: 'var(--text-primary)', fontWeight: 600, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {row.label || '-'}
-                    </div>
+                    <div className="xcost-text xcost-text--label">{row.label || '-'}</div>
                   )}
 
                   {isEditing ? (
                     <input
                       type="number"
+                      inputMode="decimal"
                       min="0"
                       step="0.01"
                       value={row.amount || ''}
                       onChange={e => updateRow(row.id, { amount: Number(e.target.value) || 0 })}
                       placeholder="ราคา"
-                      className="ui-input"
-                      style={{ border: '1px solid var(--border-subtle)', borderRadius: '0.8rem', background: 'var(--bg-elevated)' }}
+                      className="ui-input xcost-input xcost-input--amount"
                     />
                   ) : (
-                    <div style={{ color: 'var(--text-primary)', fontWeight: 700, textAlign: 'right' }}>{formatCurrency(row.amount || 0)}</div>
+                    <div className="xcost-text xcost-text--amount">{formatCurrency(row.amount || 0)}</div>
                   )}
 
                   {isEditing ? (
@@ -117,50 +125,45 @@ export default function ExtraCostEditor({ value, onChange }: ExtraCostEditorProp
                       type="date"
                       value={row.date}
                       onChange={e => updateRow(row.id, { date: e.target.value })}
-                      className="ui-input"
-                      style={{ border: '1px solid var(--border-subtle)', borderRadius: '0.8rem', background: 'var(--bg-elevated)' }}
+                      className="ui-input xcost-input xcost-input--date"
                     />
                   ) : (
-                    <div style={{ color: 'var(--text-dim)', fontSize: '0.82rem', textAlign: 'center' }}>{row.date || '-'}</div>
+                    <div className="xcost-text xcost-text--date">{row.date || '-'}</div>
                   )}
 
                   {isDeleteConfirm ? (
-                    <button
-                      type="button"
+                    <RowButton
                       onClick={() => setConfirmDeleteRowId(null)}
-                      className="ui-button ui-button--ghost ui-button--sm"
-                    >
-                      ยกเลิก
-                    </button>
+                      variant="ghost"
+                      label="ยกเลิก"
+                      icon="↩"
+                    />
                   ) : (
-                    <button
-                      type="button"
+                    <RowButton
                       onClick={() => {
                         setConfirmDeleteRowId(null);
                         setEditingRowId(isEditing ? null : row.id);
                       }}
-                      className="ui-button ui-button--ghost ui-button--sm"
-                    >
-                      {isEditing ? 'จบ' : 'แก้ไข'}
-                    </button>
+                      variant="ghost"
+                      label={isEditing ? 'จบ' : 'แก้ไข'}
+                      icon={isEditing ? '✓' : '✎'}
+                    />
                   )}
 
                   {isDeleteConfirm ? (
-                    <button
-                      type="button"
+                    <RowButton
                       onClick={() => removeRow(row.id)}
-                      className="ui-button ui-button--danger ui-button--sm"
-                    >
-                      ยืนยันลบ
-                    </button>
+                      variant="danger"
+                      label="ยืนยันลบ"
+                      icon="✓"
+                    />
                   ) : (
-                    <button
-                      type="button"
+                    <RowButton
                       onClick={() => setConfirmDeleteRowId(row.id)}
-                      className="ui-button ui-button--ghost ui-button--sm"
-                    >
-                      ลบ
-                    </button>
+                      variant="ghost"
+                      label="ลบ"
+                      icon="✕"
+                    />
                   )}
                 </div>
               );
