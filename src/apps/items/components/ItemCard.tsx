@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { calculateDaysHeld, calculateProfit, formatCurrency } from '../../../api/items/calculations';
 import type { PantagonItem } from '../../../api/items/types';
 import { tagChipStyle } from '../utils/tagColor';
+import StarRating from '../../../shared/components/StarRating';
 
 interface ItemCardProps {
   item: PantagonItem;
@@ -107,6 +108,11 @@ export default function ItemCard({ item, dailyBurn }: ItemCardProps) {
               <span className="badge-sold">Sold</span>
             )}
           </div>
+          {item.rating != null && (
+            <div style={{ marginTop: '5px' }}>
+              <StarRating value={item.rating} readOnly size={11} />
+            </div>
+          )}
         </div>
       </div>
 

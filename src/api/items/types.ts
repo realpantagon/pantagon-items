@@ -19,6 +19,7 @@ export interface PantagonItem {
     date: string;
   }[] | null;
   daily_burn: boolean;
+  rating: number | null;
   created_at: string;
   updated_at: string;
 }

@@ -6,6 +6,7 @@ import { enrichItemWithMetrics, formatCurrency } from '../../../api/items/calcul
 import { format } from 'date-fns';
 import { tagChipStyle } from '../utils/tagColor';
 import Button from '../../../shared/components/Button';
+import StarRating from '../../../shared/components/StarRating';
 import {
   parseExtraCostDetails,
   parseLegacyExtraCostsFromNote,
@@ -71,6 +72,7 @@ export default function ItemDetails() {
   const [item, setItem] = useState<PantagonItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [ratingSaving, setRatingSaving] = useState(false);
 
   useEffect(() => { if (id) fetchItem(id); }, [id]);
 
@@ -87,6 +89,23 @@ export default function ItemDetails() {
       console.error('Error fetching item:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRate = async (rating: number) => {
+    if (!item) return;
+    const nextRating = item.rating === rating ? null : rating;
+    setItem({ ...item, rating: nextRating });
+    setRatingSaving(true);
+    try {
+      const { error } = await supabase.from('Pantagon_items').update({ rating: nextRating }).eq('id', item.id);
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error updating rating:', error);
+      setItem(prev => (prev ? { ...prev, rating: item.rating } : prev));
+      alert('Failed to save rating');
+    } finally {
+      setRatingSaving(false);
     }
   };
 
@@ -217,6 +236,14 @@ export default function ItemDetails() {
                 </span>
               ))}
             </>
+          )}
+        </div>
+
+        {/* Rating row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '12px' }}>
+          <StarRating value={item.rating} onChange={handleRate} size={22} />
+          {ratingSaving && (
+            <span className="hud-label" style={{ fontSize: '7px', color: 'var(--text-dim)' }}>Saving...</span>
           )}
         </div>
       </div>
