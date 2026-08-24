@@ -9,6 +9,7 @@ import TagInput from '../components/TagInput';
 import ExtraCostEditor from '../components/ExtraCostEditor';
 import type { ExtraCostDetail } from '../utils/extraCostDetails';
 import { getExtraCostsTotal, serializeExtraCostDetails } from '../utils/extraCostDetails';
+import { useGoBack } from '../../../shared/hooks/useGoBack';
 
 function SectionHeader({ children }: { children: React.ReactNode }) {
   return (
@@ -55,6 +56,7 @@ function FormSection({ children, style }: { children: React.ReactNode; style?: R
 
 export default function AddItem() {
   const navigate = useNavigate();
+  const goBack = useGoBack();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [tagsOpen, setTagsOpen] = useState(false);
@@ -140,7 +142,7 @@ export default function AddItem() {
           >
             Register asset
           </h1>
-          <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
+          <Button variant="ghost" size="sm" onClick={goBack}>
             CANCEL
           </Button>
         </div>
@@ -357,7 +359,7 @@ export default function AddItem() {
         <Button
           variant="ghost"
           size="md"
-          onClick={() => navigate('/')}
+          onClick={goBack}
           style={{ minWidth: '80px' }}
         >
           Cancel

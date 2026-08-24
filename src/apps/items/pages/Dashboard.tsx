@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { addMonths, endOfMonth, format, isSameMonth, startOfMonth, subMonths } from 'date-fns';
 import { supabase } from '../../../shared/utils/supabase';
 import type { DashboardStats, PantagonItem } from '../../../api/items/types';
@@ -10,6 +10,26 @@ import Button from '../../../shared/components/Button';
 type ViewMode = 'month' | 'latest';
 
 const LATEST_PAGE_SIZE = 5;
+const STATE_KEY = 'pantagon-dashboard-state';
+const SCROLL_KEY = 'pantagon-dashboard-scroll';
+
+interface StoredDashboardState {
+  searchTerm: string;
+  selectedStatus: string | null;
+  selectedTag: string | null;
+  viewMode: ViewMode;
+  monthCursor: string;
+  latestPage: number;
+}
+
+function loadStoredState(): Partial<StoredDashboardState> {
+  try {
+    const raw = sessionStorage.getItem(STATE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
 
 function StatCard({
   label,
@@ -60,17 +80,61 @@ export default function Dashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [items, setItems] = useState<PantagonItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(() => loadStoredState().searchTerm ?? '');
   const [showFilters, setShowFilters] = useState(false);
-  const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
-  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<string | null>(() => loadStoredState().selectedStatus ?? null);
+  const [selectedTag, setSelectedTag] = useState<string | null>(() => loadStoredState().selectedTag ?? null);
   const [allTags, setAllTags] = useState<string[]>([]);
-  const [viewMode, setViewMode] = useState<ViewMode>('month');
-  const [monthCursor, setMonthCursor] = useState<Date>(startOfMonth(new Date()));
-  const [latestPage, setLatestPage] = useState(0);
+  const [viewMode, setViewMode] = useState<ViewMode>(() => loadStoredState().viewMode ?? 'month');
+  const [monthCursor, setMonthCursor] = useState<Date>(() => {
+    const stored = loadStoredState().monthCursor;
+    return stored ? new Date(stored) : startOfMonth(new Date());
+  });
+  const [latestPage, setLatestPage] = useState(() => loadStoredState().latestPage ?? 0);
+  const isFirstRun = useRef(true);
 
   useEffect(() => {
     fetchDashboardData();
+  }, []);
+
+  // Persist filter/view state so it survives navigating away and back
+  useEffect(() => {
+    const state: StoredDashboardState = {
+      searchTerm,
+      selectedStatus,
+      selectedTag,
+      viewMode,
+      monthCursor: monthCursor.toISOString(),
+      latestPage,
+    };
+    try {
+      sessionStorage.setItem(STATE_KEY, JSON.stringify(state));
+    } catch {
+      // sessionStorage unavailable — state simply won't persist
+    }
+  }, [searchTerm, selectedStatus, selectedTag, viewMode, monthCursor, latestPage]);
+
+  // Restore scroll position once items have loaded
+  useEffect(() => {
+    if (loading) return;
+    const saved = sessionStorage.getItem(SCROLL_KEY);
+    if (saved) {
+      requestAnimationFrame(() => window.scrollTo(0, parseInt(saved, 10)));
+    }
+  }, [loading]);
+
+  useEffect(() => {
+    let ticking = false;
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        sessionStorage.setItem(SCROLL_KEY, String(window.scrollY));
+        ticking = false;
+      });
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
   const calculateItemDailyBurn = (item: PantagonItem) => {
@@ -188,12 +252,17 @@ export default function Dashboard() {
   }, [filteredItems, viewMode, latestPage]);
 
   useEffect(() => {
+    if (isFirstRun.current) {
+      isFirstRun.current = false;
+      return;
+    }
     setLatestPage(0);
   }, [viewMode, searchTerm, selectedStatus, selectedTag]);
 
   useEffect(() => {
+    if (loading) return;
     if (latestPage > latestPageCount - 1) setLatestPage(latestPageCount - 1);
-  }, [latestPage, latestPageCount]);
+  }, [loading, latestPage, latestPageCount]);
 
   if (loading) {
     return (

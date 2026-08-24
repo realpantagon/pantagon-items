@@ -7,6 +7,7 @@ import { format } from 'date-fns';
 import { tagChipStyle } from '../utils/tagColor';
 import Button from '../../../shared/components/Button';
 import StarRating from '../../../shared/components/StarRating';
+import { useGoBack } from '../../../shared/hooks/useGoBack';
 import {
   parseExtraCostDetails,
   parseLegacyExtraCostsFromNote,
@@ -69,6 +70,7 @@ function PanelHeader({ label, icon }: { label: string; icon?: React.ReactNode })
 export default function ItemDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const goBack = useGoBack();
   const [item, setItem] = useState<PantagonItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -171,7 +173,7 @@ export default function ItemDetails() {
       {/* ── Back + Header ── */}
       <div style={{ paddingTop: '14px', marginBottom: '16px', animation: 'fade-up 0.4s ease both' }}>
         <button
-          onClick={() => navigate('/')}
+          onClick={goBack}
           className="font-display"
           style={{
             background: 'transparent',

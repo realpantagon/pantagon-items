@@ -14,6 +14,7 @@ import {
   serializeExtraCostDetails,
   stripLegacyExtraCostsFromNote,
 } from '../utils/extraCostDetails';
+import { useGoBack } from '../../../shared/hooks/useGoBack';
 
 function SectionHeader({ children }: { children: React.ReactNode }) {
   return (
@@ -62,6 +63,7 @@ export default function EditItem() {
   const MIN_NOTE_TEXTAREA_HEIGHT = 220;
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const goBack = useGoBack(id ? `/${id}` : '/');
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -226,7 +228,7 @@ export default function EditItem() {
           >
             Edit asset
           </h1>
-          <Button variant="ghost" size="sm" onClick={() => navigate(`/${id}`)}>
+          <Button variant="ghost" size="sm" onClick={goBack}>
             Cancel
           </Button>
         </div>
