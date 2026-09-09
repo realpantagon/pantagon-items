@@ -207,7 +207,7 @@ real_cost = buy_price + extra_cost
 
 ### Profit/Loss
 ```
-profit = sell_price - buy_price
+profit = sell_price - real_cost
 ```
 
 ### Dashboard Daily Burn Rate

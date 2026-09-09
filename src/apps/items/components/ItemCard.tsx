@@ -1,6 +1,6 @@
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
-import { calculateDaysHeld, calculateProfit, formatCurrency } from '../../../api/items/calculations';
+import { calculateDaysHeld, calculateProfit, calculateRealCost, formatCurrency } from '../../../api/items/calculations';
 import type { PantagonItem } from '../../../api/items/types';
 import { tagChipStyle } from '../utils/tagColor';
 import StarRating from '../../../shared/components/StarRating';
@@ -15,7 +15,8 @@ export default function ItemCard({ item, dailyBurn }: ItemCardProps) {
   const isOwned = item.status === 'owned';
 
   const daysHeld = calculateDaysHeld(item.buy_date, item.sell_date);
-  const profit = !isOwned && item.sell_price != null ? calculateProfit(item.sell_price, item.buy_price) : null;
+  const realCost = calculateRealCost(item.buy_price, item.extra_cost);
+  const profit = !isOwned && item.sell_price != null ? calculateProfit(item.sell_price, realCost) : null;
   const isGain = (profit ?? 0) >= 0;
   const pnlColor = isGain ? 'var(--gain)' : 'var(--loss)';
   const pnlSign = isGain ? '+' : '−';

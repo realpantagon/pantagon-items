@@ -38,10 +38,10 @@ export function calculateAvgCostPerDaySold(realCost: number, daysHeld: number): 
 
 /**
  * Calculate profit for sold items
- * Formula: sell_price - buy_price
+ * Formula: sell_price - real_cost
  */
-export function calculateProfit(sellPrice: number, buyPrice: number): number {
-  return sellPrice - buyPrice;
+export function calculateProfit(sellPrice: number, realCost: number): number {
+  return sellPrice - realCost;
 }
 
 /**
@@ -61,7 +61,7 @@ export function enrichItemWithMetrics(item: PantagonItem): ItemWithMetrics {
     enriched.cost_per_day = calculateCostPerDay(realCost, daysHeld);
   } else if (item.status === 'sold' && item.sell_price !== null) {
     enriched.avg_cost_per_day_sold = calculateAvgCostPerDaySold(realCost, daysHeld);
-    enriched.profit = calculateProfit(item.sell_price, item.buy_price);
+    enriched.profit = calculateProfit(item.sell_price, realCost);
   }
 
   return enriched;
@@ -89,7 +89,8 @@ export function calculateTotalProfit(items: PantagonItem[]): number {
   return items
     .filter(item => item.status === 'sold' && item.sell_price !== null)
     .reduce((total, item) => {
-      return total + (item.sell_price! - item.buy_price);
+      const realCost = calculateRealCost(item.buy_price, item.extra_cost);
+      return total + calculateProfit(item.sell_price!, realCost);
     }, 0);
 }
 

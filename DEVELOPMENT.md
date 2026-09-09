@@ -163,7 +163,7 @@ avg_cost_per_day_sold = real_cost / days_held
 
 ### Profit/Loss
 ```typescript
-profit = sell_price - buy_price
+profit = sell_price - real_cost
 ```
 
 ### Dashboard Total Burn Rate
