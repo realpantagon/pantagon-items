@@ -29,7 +29,7 @@ Schema lives in [migrations/0001_create_items.sql](migrations/0001_create_items.
 pnpm install
 pnpm dev            # Vite only (UI work; /api calls need the Worker)
 pnpm dev:worker     # build, then run the Worker + assets locally on a local D1 copy
-pnpm deploy         # build, then deploy the Worker
+pnpm run deploy     # build, then deploy the Worker (plain `pnpm deploy` is a pnpm built-in)
 pnpm db:migrate     # apply migrations/ to the remote PANTAGON_PERSONAL database
 ```
 
