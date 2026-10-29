@@ -8,20 +8,21 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "deploy:pages": "pnpm build && wrangler pages deploy dist",
-    "deploy:worker": "wrangler deploy --config wrangler.toml",
-    "dev:worker": "wrangler dev worker/index.ts"
+    "dev:worker": "pnpm build && wrangler dev",
+    "deploy": "pnpm build && wrangler deploy",
+    "db:migrate": "wrangler d1 migrations apply PANTAGON_PERSONAL --remote"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.89.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "hono": "^4.13.14",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.11.0",
     "recharts": "^3.6.0"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261029.1",
     "@eslint/js": "^9.39.1",
     "@tailwindcss/postcss": "^4.1.18",
     "@types/node": "^24.10.1",

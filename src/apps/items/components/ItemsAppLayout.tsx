@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
+import { useLocation } from 'react-router-dom';
 import ItemsNavbar from './ItemsNavbar';
 
 interface ItemsAppLayoutProps {
@@ -6,15 +7,17 @@ interface ItemsAppLayoutProps {
 }
 
 export default function ItemsAppLayout({ children }: ItemsAppLayoutProps) {
+  const { pathname } = useLocation();
+
+  // Inner pages start at the top; the dashboard restores its own scroll position
+  useEffect(() => {
+    if (pathname !== '/') window.scrollTo(0, 0);
+  }, [pathname]);
+
   return (
     <div className="app-shell">
-      <div style={{ position: 'relative', zIndex: 10 }}>
-        <ItemsNavbar />
-      </div>
-
-      <main style={{ position: 'relative', zIndex: 1, maxWidth: '760px', margin: '0 auto', padding: '1rem 0.95rem 6rem' }}>
-        {children}
-      </main>
+      <ItemsNavbar />
+      <main className="page">{children}</main>
     </div>
   );
 }

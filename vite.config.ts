@@ -8,40 +8,41 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icon-192.png', 'icon-512.png'],
+      includeAssets: ['box-red.png'],
       manifest: {
         name: 'Pantagon Items',
         short_name: 'Pantagon',
         description: 'Track your items, costs, and daily burn rate',
-        theme_color: '#0ea5e9',
-        background_color: '#ffffff',
+        theme_color: '#08090d',
+        background_color: '#08090d',
         display: 'standalone',
+        orientation: 'portrait',
+        start_url: '/',
         icons: [
           {
-            src: '/icon-192.png',
-            sizes: '192x192',
+            src: '/box-red.png',
+            sizes: '1024x1024',
             type: 'image/png',
-            purpose: 'any maskable'
-          },
-          {
-            src: '/icon-512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'any maskable'
+            purpose: 'any'
           }
         ]
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        // API responses must come from the Worker, never the SPA shell
+        navigateFallbackDenylist: [/^\/api\//],
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
+            // Offline fallback: last item list stays readable without signal
+            urlPattern: ({ url }) => url.pathname.startsWith('/api/items'),
+            method: 'GET',
             handler: 'NetworkFirst',
             options: {
-              cacheName: 'supabase-cache',
+              cacheName: 'items-api',
+              networkTimeoutSeconds: 4,
               expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 60 * 60 // 1 hour
+                maxEntries: 60,
+                maxAgeSeconds: 60 * 60 * 24 * 7 // 1 week
               },
               cacheableResponse: {
                 statuses: [0, 200]

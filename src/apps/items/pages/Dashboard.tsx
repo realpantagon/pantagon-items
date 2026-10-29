@@ -1,25 +1,30 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { addMonths, endOfMonth, format, isSameMonth, startOfMonth, subMonths } from 'date-fns';
-import { supabase } from '../../../shared/utils/supabase';
-import type { DashboardStats, PantagonItem } from '../../../api/items/types';
-import { calculateDailyBurnRate, calculateTotalProfit, formatCurrency } from '../../../api/items/calculations';
+import { fetchItems, getCachedItems } from '../../../api/items/api';
+import type { PantagonItem } from '../../../api/items/types';
+import {
+  calculateDailyBurnRate,
+  calculateDaysHeld,
+  calculateRealCost,
+  calculateTotalProfit,
+  formatCurrency,
+} from '../../../api/items/calculations';
 import { parseExtraCostDetails } from '../utils/extraCostDetails';
 import ItemCard from '../../items/components/ItemCard';
-import Button from '../../../shared/components/Button';
 
-type ViewMode = 'month' | 'latest';
+type ViewMode = 'latest' | 'month';
+type StatusFilter = 'owned' | 'sold' | null;
 
-const LATEST_PAGE_SIZE = 5;
 const STATE_KEY = 'pantagon-dashboard-state';
 const SCROLL_KEY = 'pantagon-dashboard-scroll';
 
 interface StoredDashboardState {
   searchTerm: string;
-  selectedStatus: string | null;
+  selectedStatus: StatusFilter;
   selectedTag: string | null;
   viewMode: ViewMode;
   monthCursor: string;
-  latestPage: number;
 }
 
 function loadStoredState(): Partial<StoredDashboardState> {
@@ -31,71 +36,95 @@ function loadStoredState(): Partial<StoredDashboardState> {
   }
 }
 
-function StatCard({
-  label,
-  value,
-  accent,
-  icon,
-  delay = 0,
-}: {
-  label: string;
-  value: string;
-  accent: string;
-  icon: React.ReactNode;
-  delay?: number;
-}) {
+function itemDailyBurn(item: PantagonItem) {
+  return calculateRealCost(item.buy_price, item.extra_cost) / calculateDaysHeld(item.buy_date, item.sell_date);
+}
+
+/** Purchases bought in the month plus extra costs dated in the month. */
+function spendInMonth(items: PantagonItem[], month: Date) {
+  const start = startOfMonth(month);
+  const end = endOfMonth(month);
+  const inMonth = (value: string) => {
+    const date = new Date(value);
+    return !Number.isNaN(date.getTime()) && date >= start && date <= end;
+  };
+
+  let purchases = 0;
+  let extras = 0;
+  let count = 0;
+
+  for (const item of items) {
+    const boughtThisMonth = inMonth(item.buy_date);
+    if (boughtThisMonth) {
+      purchases += item.buy_price || 0;
+      count += 1;
+    }
+
+    const detailRows = parseExtraCostDetails(item.extra_cost_details);
+    if (detailRows.length > 0) {
+      // Dated rows are attributed to the month they were actually spent in
+      extras += detailRows.filter(row => inMonth(row.date)).reduce((sum, row) => sum + row.amount, 0);
+    } else if (boughtThisMonth) {
+      // Legacy records only carry a lump sum, so it falls in the purchase month
+      extras += item.extra_cost || 0;
+    }
+  }
+
+  return { purchases, extras, count, total: purchases + extras };
+}
+
+function Stat({ label, value, sub, color }: { label: string; value: string; sub?: string; color?: string }) {
   return (
-    <div
-      style={{
-        background: 'var(--bg-surface)',
-        border: '1px solid var(--border-subtle)',
-        padding: '12px 13px',
-        borderRadius: '1rem',
-        boxShadow: 'var(--shadow-sm)',
-        animation: `fade-up 0.45s ease both`,
-        animationDelay: `${delay}s`,
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '10px' }}>
-        <div className="hud-label" style={{ fontSize: '7px', letterSpacing: '0.12em' }}>{label}</div>
-        <div style={{ color: accent, opacity: 0.72 }}>{icon}</div>
-      </div>
-      <div
-        className="font-ui"
-        style={{
-          fontSize: '22px',
-          fontWeight: 700,
-          color: accent,
-          letterSpacing: '0.01em',
-          lineHeight: 1,
-        }}
-      >
+    <div className="ui-card" style={{ padding: '14px 14px 12px', boxShadow: 'none' }}>
+      <div className="hud-label">{label}</div>
+      <div className="num" style={{ marginTop: '6px', fontSize: '1.45rem', fontWeight: 700, lineHeight: 1.1, color: color ?? 'var(--text-primary)' }}>
         {value}
       </div>
+      {sub && <div className="num" style={{ marginTop: '4px', fontSize: '0.8rem', color: 'var(--text-dim)' }}>{sub}</div>}
     </div>
   );
 }
 
+function ChevronIcon({ dir }: { dir: 'left' | 'right' }) {
+  return (
+    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" aria-hidden="true">
+      <path d={dir === 'left' ? 'M15 5l-7 7 7 7' : 'M9 5l7 7-7 7'} />
+    </svg>
+  );
+}
+
 export default function Dashboard() {
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [items, setItems] = useState<PantagonItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [items, setItems] = useState<PantagonItem[]>(() => getCachedItems() ?? []);
+  const [loading, setLoading] = useState(() => getCachedItems() === null);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState(() => loadStoredState().searchTerm ?? '');
-  const [showFilters, setShowFilters] = useState(false);
-  const [selectedStatus, setSelectedStatus] = useState<string | null>(() => loadStoredState().selectedStatus ?? null);
+  const [selectedStatus, setSelectedStatus] = useState<StatusFilter>(() => loadStoredState().selectedStatus ?? null);
   const [selectedTag, setSelectedTag] = useState<string | null>(() => loadStoredState().selectedTag ?? null);
-  const [allTags, setAllTags] = useState<string[]>([]);
-  const [viewMode, setViewMode] = useState<ViewMode>(() => loadStoredState().viewMode ?? 'month');
+  const [viewMode, setViewMode] = useState<ViewMode>(() => loadStoredState().viewMode ?? 'latest');
   const [monthCursor, setMonthCursor] = useState<Date>(() => {
     const stored = loadStoredState().monthCursor;
     return stored ? new Date(stored) : startOfMonth(new Date());
   });
-  const [latestPage, setLatestPage] = useState(() => loadStoredState().latestPage ?? 0);
-  const isFirstRun = useRef(true);
+
+  const load = useCallback(async () => {
+    try {
+      setItems(await fetchItems());
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching items:', err);
+      setError(err instanceof Error ? err.message : 'Could not load items');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    fetchDashboardData();
-  }, []);
+    load();
+    // Home-screen apps resume rather than reload, so refresh when brought back
+    const onVisible = () => document.visibilityState === 'visible' && load();
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [load]);
 
   // Persist filter/view state so it survives navigating away and back
   useEffect(() => {
@@ -105,22 +134,19 @@ export default function Dashboard() {
       selectedTag,
       viewMode,
       monthCursor: monthCursor.toISOString(),
-      latestPage,
     };
     try {
       sessionStorage.setItem(STATE_KEY, JSON.stringify(state));
     } catch {
       // sessionStorage unavailable — state simply won't persist
     }
-  }, [searchTerm, selectedStatus, selectedTag, viewMode, monthCursor, latestPage]);
+  }, [searchTerm, selectedStatus, selectedTag, viewMode, monthCursor]);
 
-  // Restore scroll position once items have loaded
+  // Restore scroll position once items are on screen
   useEffect(() => {
     if (loading) return;
     const saved = sessionStorage.getItem(SCROLL_KEY);
-    if (saved) {
-      requestAnimationFrame(() => window.scrollTo(0, parseInt(saved, 10)));
-    }
+    if (saved) requestAnimationFrame(() => window.scrollTo(0, parseInt(saved, 10)));
   }, [loading]);
 
   useEffect(() => {
@@ -137,551 +163,250 @@ export default function Dashboard() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  const calculateItemDailyBurn = (item: PantagonItem) => {
-    const daysHeld = item.sell_date
-      ? Math.max(1, Math.floor((new Date(item.sell_date).getTime() - new Date(item.buy_date).getTime()) / 86400000))
-      : Math.max(1, Math.floor((Date.now() - new Date(item.buy_date).getTime()) / 86400000));
-    return (item.buy_price + item.extra_cost) / daysHeld;
-  };
+  const stats = useMemo(() => ({
+    total: items.length,
+    owned: items.filter(i => i.status === 'owned').length,
+    sold: items.filter(i => i.status === 'sold').length,
+    dailyBurn: calculateDailyBurnRate(items),
+    profit: calculateTotalProfit(items),
+    thisMonth: spendInMonth(items, new Date()),
+  }), [items]);
 
-  const fetchDashboardData = async () => {
-    try {
-      const { data: rows, error } = await supabase
-        .from('Pantagon_items')
-        .select('*')
-        .order('buy_date', { ascending: false });
-      if (error) throw error;
+  const tagCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    items.forEach(item => (item.tags ?? []).forEach(tag => counts.set(tag, (counts.get(tag) ?? 0) + 1)));
+    return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  }, [items]);
 
-      if (rows) {
-        setStats({
-          total_items: rows.length,
-          owned_items: rows.filter(i => i.status === 'owned').length,
-          sold_items: rows.filter(i => i.status === 'sold').length,
-          daily_burn_rate: calculateDailyBurnRate(rows),
-          total_profit: calculateTotalProfit(rows),
-        });
-
-        setItems(rows);
-
-        const tags = Array.from(new Set(rows.flatMap(i => i.tags || []).filter(Boolean))) as string[];
-        setAllTags(tags.sort());
-      }
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const modeItems = useMemo(() => {
-    const sorted = [...items].sort((a, b) => new Date(b.buy_date).getTime() - new Date(a.buy_date).getTime());
-
-    if (viewMode === 'latest') {
-      return sorted;
-    }
-
-    const monthStart = startOfMonth(monthCursor);
-    const monthEnd = endOfMonth(monthCursor);
-
-    return sorted.filter(item => {
-      const buyDate = new Date(item.buy_date);
-      return buyDate >= monthStart && buyDate <= monthEnd;
-    });
-  }, [items, viewMode, monthCursor]);
-
-  const monthSpend = useMemo(() => {
-    const monthStart = startOfMonth(monthCursor);
-    const monthEnd = endOfMonth(monthCursor);
-    const inMonth = (value: string) => {
-      const date = new Date(value);
-      return !Number.isNaN(date.getTime()) && date >= monthStart && date <= monthEnd;
-    };
-
-    let purchases = 0;
-    let extras = 0;
-    let count = 0;
-
-    for (const item of items) {
-      const boughtThisMonth = inMonth(item.buy_date);
-
-      if (boughtThisMonth) {
-        purchases += item.buy_price || 0;
-        count += 1;
-      }
-
-      const detailRows = parseExtraCostDetails(item.extra_cost_details);
-
-      if (detailRows.length > 0) {
-        // Dated rows are attributed to the month they were actually spent in
-        extras += detailRows
-          .filter(row => inMonth(row.date))
-          .reduce((sum, row) => sum + row.amount, 0);
-      } else if (boughtThisMonth) {
-        // Legacy records only carry a lump sum, so it falls in the purchase month
-        extras += item.extra_cost || 0;
-      }
-    }
-
-    return { purchases, extras, count, total: purchases + extras };
-  }, [items, monthCursor]);
+  const monthSpend = useMemo(() => spendInMonth(items, monthCursor), [items, monthCursor]);
 
   const filteredItems = useMemo(() => {
-    let filtered = [...modeItems];
+    const query = searchTerm.trim().toLowerCase();
+    const monthStart = startOfMonth(monthCursor);
+    const monthEnd = endOfMonth(monthCursor);
 
-    if (searchTerm.trim()) {
-      filtered = filtered.filter(i => i.name.toLowerCase().includes(searchTerm.toLowerCase()));
-    }
+    return [...items]
+      .sort((a, b) => b.buy_date.localeCompare(a.buy_date) || b.created_at.localeCompare(a.created_at))
+      .filter(item => {
+        if (viewMode === 'month') {
+          const buyDate = new Date(item.buy_date);
+          if (buyDate < monthStart || buyDate > monthEnd) return false;
+        }
+        if (query && !item.name.toLowerCase().includes(query)) return false;
+        if (selectedStatus && item.status !== selectedStatus) return false;
+        if (selectedTag && !item.tags?.includes(selectedTag)) return false;
+        return true;
+      });
+  }, [items, viewMode, monthCursor, searchTerm, selectedStatus, selectedTag]);
 
-    if (selectedStatus) {
-      filtered = filtered.filter(i => i.status === selectedStatus);
-    }
+  // Latest view reads as a timeline: one section per purchase month
+  const sections = useMemo(() => {
+    if (viewMode === 'month') return [{ key: 'month', title: null as string | null, items: filteredItems }];
+    const groups = new Map<string, PantagonItem[]>();
+    filteredItems.forEach(item => {
+      const key = item.buy_date.slice(0, 7);
+      groups.set(key, [...(groups.get(key) ?? []), item]);
+    });
+    return [...groups.entries()].map(([key, groupItems]) => ({
+      key,
+      title: format(new Date(`${key}-01T00:00:00`), 'MMMM yyyy'),
+      items: groupItems,
+    }));
+  }, [filteredItems, viewMode]);
 
-    if (selectedTag) {
-      filtered = filtered.filter(i => i.tags && i.tags.includes(selectedTag));
-    }
-
-    return filtered;
-  }, [modeItems, searchTerm, selectedStatus, selectedTag]);
-
-  const latestPageCount = Math.max(1, Math.ceil(filteredItems.length / LATEST_PAGE_SIZE));
-
-  const visibleItems = useMemo(() => {
-    if (viewMode !== 'latest') return filteredItems;
-    const start = latestPage * LATEST_PAGE_SIZE;
-    return filteredItems.slice(start, start + LATEST_PAGE_SIZE);
-  }, [filteredItems, viewMode, latestPage]);
-
-  useEffect(() => {
-    if (isFirstRun.current) {
-      isFirstRun.current = false;
-      return;
-    }
-    setLatestPage(0);
-  }, [viewMode, searchTerm, selectedStatus, selectedTag]);
-
-  useEffect(() => {
-    if (loading) return;
-    if (latestPage > latestPageCount - 1) setLatestPage(latestPageCount - 1);
-  }, [loading, latestPage, latestPageCount]);
-
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60vh', gap: '16px' }}>
-        <div
-          style={{
-            width: '40px',
-            height: '40px',
-            border: '1px solid var(--border-subtle)',
-            borderTop: '1px solid var(--accent)',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
-          }}
-        />
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-        <div className="hud-label" style={{ letterSpacing: '0.18em' }}>Loading system data...</div>
-      </div>
-    );
-  }
-
-  const profit = stats?.total_profit || 0;
-  const profitColor = profit >= 0 ? 'var(--gain)' : 'var(--loss)';
+  const hasFilters = Boolean(searchTerm.trim() || selectedStatus || selectedTag);
   const isCurrentMonth = isSameMonth(monthCursor, new Date());
+  const profitColor = stats.profit >= 0 ? 'var(--gain)' : 'var(--loss)';
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setSelectedStatus(null);
+    setSelectedTag(null);
+  };
 
   return (
-    <div style={{ paddingBottom: '80px' }}>
-      <div style={{ marginBottom: '18px', paddingTop: '4px', animation: 'slide-up 0.4s ease both' }}>
-        <div className="font-ui" style={{ color: 'var(--accent-strong)', fontSize: '0.95rem', marginBottom: '0.25rem', fontWeight: 600 }}>
-          {format(new Date(), 'EEEE')} <span style={{ color: 'var(--text-dim)', marginLeft: '0.35rem', fontWeight: 500 }}>{format(new Date(), 'MMM d')}</span>
+    <div>
+      <div style={{ padding: '6px 0 14px' }}>
+        <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--accent)' }}>
+          {format(new Date(), 'EEEE d MMMM')}
         </div>
-        <h1
-          className="font-display"
-          style={{
-            fontSize: '2.5rem',
-            fontWeight: 500,
-            letterSpacing: '0.01em',
-            color: 'var(--text-primary)',
-            margin: 0,
-            lineHeight: 1.02,
-          }}
-        >
-          Pantagon Items
+        <h1 style={{ margin: '2px 0 0', fontSize: '2rem', fontWeight: 700, lineHeight: 1.15, color: 'var(--text-primary)' }}>
+          Overview
         </h1>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '18px' }}>
-        <StatCard
-          label="TOTAL ASSETS"
-          value={String(stats?.total_items || 0)}
-          accent="var(--text-primary)"
-          delay={0.05}
-          icon={
-            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="square" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-            </svg>
-          }
-        />
-        <StatCard
-          label="ACTIVE"
-          value={String(stats?.owned_items || 0)}
-          accent="var(--accent-strong)"
-          delay={0.1}
-          icon={
-            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="square" strokeWidth={1.5} d="M5 13l4 4L19 7" />
-            </svg>
-          }
-        />
-        <StatCard
-          label="NET P/L"
-          value={stats ? formatCurrency(profit, 0) : '฿0'}
-          accent={profitColor}
-          delay={0.15}
-          icon={
-            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="square" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          }
-        />
-        <StatCard
-          label="DAILY BURN"
-          value={stats ? formatCurrency(stats.daily_burn_rate) : '฿0'}
-          accent="var(--soft-red)"
-          delay={0.2}
-          icon={
-            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="square" strokeWidth={1.5} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
-            </svg>
-          }
-        />
+      {loading ? (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '20px' }}>
+          {[0, 1, 2, 3].map(i => <div key={i} className="skeleton" style={{ height: '92px' }} />)}
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '20px', animation: 'fade-up 0.35s var(--ease-out) both' }}>
+          <Stat label="Owned" value={String(stats.owned)} sub={`of ${stats.total} · ${stats.sold} sold`} />
+          <Stat label="Daily burn" value={formatCurrency(stats.dailyBurn)} color="var(--soft-red)" sub={`${formatCurrency(stats.dailyBurn * 30, 0)} / month`} />
+          <Stat label="Net P/L" value={`${stats.profit >= 0 ? '+' : '−'}${formatCurrency(Math.abs(stats.profit), 0)}`} color={profitColor} sub="from sold items" />
+          <Stat label={format(new Date(), 'MMM')+' spend'} value={formatCurrency(stats.thisMonth.total, 0)} sub={`${stats.thisMonth.count} bought · extra ${formatCurrency(stats.thisMonth.extras, 0)}`} />
+        </div>
+      )}
+
+      <div className="segmented" style={{ marginBottom: '12px' }}>
+        <button type="button" aria-pressed={viewMode === 'latest'} onClick={() => setViewMode('latest')}>Latest</button>
+        <button type="button" aria-pressed={viewMode === 'month'} onClick={() => setViewMode('month')}>By month</button>
       </div>
 
-      <div style={{ animation: 'slide-up 0.5s ease 0.25s both' }}>
-        <div style={{ border: '1px solid var(--border-subtle)', borderRadius: '1rem', padding: '4px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', marginBottom: '10px', background: 'var(--bg-surface)' }}>
-          <button
-            onClick={() => setViewMode('month')}
-            className="ui-button ui-button--md"
-            style={{
-              background: viewMode === 'month' ? 'var(--bg-elevated)' : 'transparent',
-              borderColor: viewMode === 'month' ? 'var(--border-strong)' : 'transparent',
-              color: viewMode === 'month' ? 'var(--text-primary)' : 'var(--text-secondary)',
-            }}
-          >
-            Month
-          </button>
-          <button
-            onClick={() => setViewMode('latest')}
-            className="ui-button ui-button--md"
-            style={{
-              background: viewMode === 'latest' ? 'var(--bg-elevated)' : 'transparent',
-              borderColor: viewMode === 'latest' ? 'var(--border-strong)' : 'transparent',
-              color: viewMode === 'latest' ? 'var(--text-primary)' : 'var(--text-secondary)',
-            }}
-          >
-            Latest
-          </button>
-        </div>
-
-        {viewMode === 'month' && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '12px' }}>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setMonthCursor(prev => subMonths(prev, 1))}
-              className="ui-button--nav"
-              aria-label="Previous month"
-              title="Previous month"
-            >
-              <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.5 6l-6 6 6 6" />
-              </svg>
-            </Button>
-            <div className="font-ui" style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
-              {format(monthCursor, 'MMMM yyyy')}
+      {viewMode === 'month' && (
+        <div className="ui-card" style={{ padding: '6px', marginBottom: '12px', boxShadow: 'none' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <button type="button" className="icon-button" style={{ border: 0 }} onClick={() => setMonthCursor(prev => subMonths(prev, 1))} aria-label="Previous month">
+              <ChevronIcon dir="left" />
+            </button>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{format(monthCursor, 'MMMM yyyy')}</div>
+              <div className="num" style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>
+                {monthSpend.count} bought · extra {formatCurrency(monthSpend.extras, 0)} ·{' '}
+                <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{formatCurrency(monthSpend.total, 0)}</span>
+              </div>
             </div>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setMonthCursor(prev => addMonths(prev, 1))}
-              disabled={isCurrentMonth}
-              className="ui-button--nav"
-              aria-label="Next month"
-              title="Next month"
-            >
-              <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.5 6l6 6-6 6" />
-              </svg>
-            </Button>
-          </div>
-        )}
-
-        {viewMode === 'month' && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'baseline',
-            justifyContent: 'space-between',
-            gap: '10px',
-            padding: '0 2px 10px',
-            marginBottom: '12px',
-            borderBottom: '1px solid var(--border-subtle)',
-          }}
-        >
-          <div className="hud-label" style={{ fontSize: '7px', letterSpacing: '0.12em' }}>
-            Spent in {format(monthCursor, 'MMMM yyyy')}
-          </div>
-          <div style={{ fontSize: '0.78rem', color: 'var(--text-dim)', whiteSpace: 'nowrap' }}>
-            {monthSpend.count} {monthSpend.count === 1 ? 'item' : 'items'} · extra {formatCurrency(monthSpend.extras, 0)}
-            <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}> · {formatCurrency(monthSpend.total, 0)}</span>
+            <button type="button" className="icon-button" style={{ border: 0 }} onClick={() => setMonthCursor(prev => addMonths(prev, 1))} disabled={isCurrentMonth} aria-label="Next month">
+              <ChevronIcon dir="right" />
+            </button>
           </div>
         </div>
-        )}
+      )}
 
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: '12px',
-            paddingBottom: '8px',
-            borderBottom: '1px solid var(--border-subtle)',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: '3px', height: '14px', background: 'var(--accent)' }} />
-            <h2 className="font-display" style={{ margin: 0, fontSize: '1.02rem', letterSpacing: '0.01em', fontWeight: 500, color: 'var(--text-primary)' }}>
-              Asset registry
-            </h2>
-          </div>
-          <div className="hud-label" style={{ fontSize: '8px' }}>{filteredItems.length} RECORDS</div>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'stretch', gap: '8px', marginBottom: '10px' }}>
-        <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
-          <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: '2px', background: 'var(--accent)' }} />
-          <div style={{ position: 'absolute', top: '50%', left: '14px', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-dim)' }}>
-            <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="square" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+      <div className="ui-field-shell" style={{ marginBottom: '10px', alignItems: 'center' }}>
+        <svg width="17" height="17" fill="none" stroke="var(--text-dim)" strokeWidth={2} strokeLinecap="round" viewBox="0 0 24 24" style={{ marginLeft: '14px', flexShrink: 0 }} aria-hidden="true">
+          <circle cx="11" cy="11" r="7" />
+          <path d="M20 20l-3.5-3.5" />
+        </svg>
+        <input
+          type="search"
+          enterKeyHint="search"
+          placeholder="Search items"
+          aria-label="Search items"
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
+          className="ui-input"
+          style={{ paddingLeft: '10px' }}
+        />
+        {searchTerm && (
+          <button type="button" onClick={() => setSearchTerm('')} aria-label="Clear search" className="icon-button" style={{ border: 0, background: 'none', color: 'var(--text-dim)' }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12 2a10 10 0 100 20 10 10 0 000-20zm3.5 12.1l-1.4 1.4L12 13.4l-2.1 2.1-1.4-1.4 2.1-2.1-2.1-2.1 1.4-1.4 2.1 2.1 2.1-2.1 1.4 1.4-2.1 2.1 2.1 2.1z" />
             </svg>
-          </div>
-          <input
-            type="text"
-            placeholder="Search asset name"
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            style={{
-              width: '100%',
-              paddingLeft: '34px',
-              paddingRight: '12px',
-              paddingTop: '12px',
-              paddingBottom: '12px',
-              background: 'var(--bg-elevated)',
-              border: '1px solid var(--border-subtle)',
-              borderLeft: 'none',
-              color: 'var(--text-primary)',
-              fontFamily: 'var(--font-body)',
-              fontSize: '14px',
-              letterSpacing: '0.01em',
-              outline: 'none',
-              transition: 'all 0.2s ease',
-              boxSizing: 'border-box',
-              borderRadius: '1rem',
-            }}
-          />
-        </div>
+          </button>
+        )}
+      </div>
 
+      <div className="chip-row" style={{ marginBottom: '16px' }} role="toolbar" aria-label="Filters">
+        <button type="button" className="chip" aria-pressed={!selectedStatus && !selectedTag} onClick={() => { setSelectedStatus(null); setSelectedTag(null); }}>
+          All
+        </button>
+        {(['owned', 'sold'] as const).map(status => (
           <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="font-ui"
-            style={{
-              flexShrink: 0,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '0 1rem',
-              background: showFilters ? 'var(--accent-soft)' : 'var(--bg-elevated)',
-              border: `1px solid ${showFilters ? 'var(--accent)' : 'var(--border-subtle)'}`,
-              color: showFilters ? 'var(--text-primary)' : 'var(--text-secondary)',
-              fontSize: '0.84rem',
-              letterSpacing: '0.01em',
-              cursor: 'pointer',
-              borderRadius: '1rem',
-              whiteSpace: 'nowrap',
-              transition: 'all 0.16s ease',
-            }}
+            key={status}
+            type="button"
+            className="chip"
+            aria-pressed={selectedStatus === status}
+            onClick={() => setSelectedStatus(prev => (prev === status ? null : status))}
           >
-            Filters {showFilters ? '−' : '+'}
+            {status === 'owned' ? 'Owned' : 'Sold'}
+            <span className="chip__count num">{status === 'owned' ? stats.owned : stats.sold}</span>
+          </button>
+        ))}
+        <span aria-hidden="true" style={{ width: '1px', flexShrink: 0, margin: '6px 2px', background: 'var(--border-strong)' }} />
+        {tagCounts.map(([tag, count]) => (
+          <button
+            key={tag}
+            type="button"
+            className="chip"
+            aria-pressed={selectedTag === tag}
+            onClick={() => setSelectedTag(prev => (prev === tag ? null : tag))}
+          >
+            {tag}
+            <span className="chip__count num">{count}</span>
+          </button>
+        ))}
+      </div>
+
+      {error && (
+        <div className="ui-card" role="alert" style={{ padding: '14px 16px', marginBottom: '14px', borderColor: 'color-mix(in srgb, var(--soft-red) 40%, transparent)' }}>
+          <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Couldn't refresh items</div>
+          <div style={{ fontSize: '0.86rem', color: 'var(--text-dim)', margin: '2px 0 10px' }}>
+            {items.length ? 'Showing the last list loaded.' : error}
+          </div>
+          <button type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={() => { setLoading(items.length === 0); load(); }}>
+            Try again
           </button>
         </div>
+      )}
 
-        {(selectedStatus || selectedTag) && (
-        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '12px' }}>
-          {selectedStatus && (
-            <button
-              onClick={() => setSelectedStatus(null)}
-              className="font-ui"
-              style={{
-                padding: '0.5rem 0.82rem',
-                background: 'var(--accent-soft)',
-                border: '1px solid var(--border-subtle)',
-                color: 'var(--accent-strong)',
-                fontSize: '0.82rem',
-                cursor: 'pointer',
-                borderRadius: '999px',
-              }}
-            >
-              Status: {selectedStatus.toUpperCase()} ×
-            </button>
-          )}
-
-          {selectedTag && (
-            <button
-              onClick={() => setSelectedTag(null)}
-              className="font-ui"
-              style={{
-                padding: '0.5rem 0.82rem',
-                background: 'var(--accent-soft)',
-                border: '1px solid var(--border-subtle)',
-                color: 'var(--accent-strong)',
-                fontSize: '0.82rem',
-                cursor: 'pointer',
-                borderRadius: '999px',
-              }}
-            >
-              Tag: {selectedTag.toUpperCase()} ×
-            </button>
-          )}
+      {loading ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {[0, 1, 2, 3].map(i => <div key={i} className="skeleton" style={{ height: '118px' }} />)}
         </div>
-        )}
+      ) : (
+        <>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '8px' }}>
+            <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-primary)' }}>Items</h2>
+            <span className="num" style={{ fontSize: '0.84rem', color: 'var(--text-dim)' }}>
+              {filteredItems.length} {filteredItems.length === 1 ? 'item' : 'items'}
+              {hasFilters && (
+                <button type="button" onClick={clearFilters} style={{ marginLeft: '10px', padding: 0, border: 0, background: 'none', color: 'var(--accent)', fontWeight: 600, cursor: 'pointer' }}>
+                  Clear filters
+                </button>
+              )}
+            </span>
+          </div>
 
-        {showFilters && (
-          <div
-            style={{
-              background: 'var(--bg-elevated)',
-              border: '1px solid var(--border-subtle)',
-              padding: '13px',
-              marginBottom: '12px',
-              display: 'flex',
-              gap: '8px',
-              flexWrap: 'wrap',
-              animation: 'slide-up 0.2s ease both',
-              borderRadius: '1.1rem',
-            }}
-          >
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: '120px' }}>
-              <span className="hud-label" style={{ fontSize: '7px' }}>Status filter</span>
-              <select
-                value={selectedStatus || ''}
-                onChange={e => setSelectedStatus(e.target.value || null)}
-                style={{
-                  background: 'var(--bg-primary)',
-                  border: '1px solid var(--border-subtle)',
-                  color: 'var(--text-primary)',
-                  fontFamily: 'var(--font-body)',
-                  fontSize: '13px',
-                  padding: '6px 8px',
-                  outline: 'none',
-                  cursor: 'pointer',
-                  borderRadius: '0.85rem',
-                }}
-              >
-                <option value="">All status</option>
-                <option value="owned">Owned</option>
-                <option value="sold">Sold</option>
-              </select>
-            </div>
-            {allTags.length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: '120px' }}>
-                <span className="hud-label" style={{ fontSize: '7px' }}>Tag filter</span>
-                <select
-                  value={selectedTag || ''}
-                  onChange={e => setSelectedTag(e.target.value || null)}
+          {sections.map(section => (
+            <section key={section.key}>
+              {section.title && (
+                <div
                   style={{
+                    position: 'sticky',
+                    top: 'calc(53px + var(--safe-top))',
+                    zIndex: 5,
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    padding: '10px 2px 8px',
+                    margin: '0 -2px',
                     background: 'var(--bg-primary)',
-                    border: '1px solid var(--border-subtle)',
-                    color: 'var(--text-primary)',
-                    fontFamily: 'var(--font-body)',
-                    fontSize: '13px',
-                    padding: '6px 8px',
-                    outline: 'none',
-                    cursor: 'pointer',
-                    borderRadius: '0.85rem',
                   }}
                 >
-                  <option value="">All tags</option>
-                  {allTags.map(tag => (
-                    <option key={tag} value={tag}>{tag}</option>
-                  ))}
-                </select>
+                  <span className="hud-label" style={{ color: 'var(--text-secondary)' }}>{section.title}</span>
+                  <span className="hud-label num">{section.items.length}</span>
+                </div>
+              )}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '8px' }}>
+                {section.items.map(item => (
+                  <ItemCard key={item.id} item={item} dailyBurn={itemDailyBurn(item)} />
+                ))}
               </div>
-            )}
-          </div>
-        )}
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {visibleItems.map((item, i) => (
-            <div key={item.id} style={{ animation: `fade-up 0.3s ease ${i * 0.03}s both` }}>
-              <ItemCard item={item} dailyBurn={calculateItemDailyBurn(item)} />
-            </div>
+            </section>
           ))}
-        </div>
 
-        {viewMode === 'latest' && filteredItems.length > LATEST_PAGE_SIZE && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginTop: '14px' }}>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setLatestPage(prev => Math.max(0, prev - 1))}
-              disabled={latestPage === 0}
-              className="ui-button--nav"
-              aria-label="Newer assets"
-              title="Newer"
-            >
-              <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.5 6l-6 6 6 6" />
-              </svg>
-            </Button>
-            <div className="hud-label" style={{ fontSize: '8px' }}>
-              Page {latestPage + 1} / {latestPageCount}
+          {filteredItems.length === 0 && !error && (
+            <div style={{ textAlign: 'center', padding: '44px 16px', border: '1px dashed var(--border-strong)', borderRadius: '18px' }}>
+              <div style={{ fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                {hasFilters ? 'No items match' : viewMode === 'month' ? `Nothing bought in ${format(monthCursor, 'MMMM')}` : 'No items yet'}
+              </div>
+              <div style={{ fontSize: '0.88rem', color: 'var(--text-dim)', marginBottom: hasFilters ? '12px' : 0 }}>
+                {hasFilters ? 'Try a different search or filter.' : 'Tap Add to register your first item.'}
+              </div>
+              {hasFilters && (
+                <button type="button" className="ui-button ui-button--secondary ui-button--sm" onClick={clearFilters}>Clear filters</button>
+              )}
             </div>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setLatestPage(prev => Math.min(latestPageCount - 1, prev + 1))}
-              disabled={latestPage >= latestPageCount - 1}
-              className="ui-button--nav"
-              aria-label="Older assets"
-              title="Older"
-            >
-              <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.5 6l6 6-6 6" />
-              </svg>
-            </Button>
-          </div>
-        )}
+          )}
+        </>
+      )}
 
-        {filteredItems.length === 0 && (
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '48px 16px',
-              border: '1px dashed var(--border-subtle)',
-              textAlign: 'center',
-              borderRadius: '1rem',
-              marginTop: '10px',
-            }}
-          >
-            <div className="font-ui" style={{ fontSize: '0.95rem', color: 'var(--text-dim)', marginBottom: '8px' }}>
-              No records found
-            </div>
-            <div className="font-ui" style={{ fontSize: '0.84rem', color: 'var(--text-dim)' }}>
-              Adjust filters or add a new asset
-            </div>
-          </div>
-        )}
-      </div>
+      <Link to="/new" className="fab" aria-label="Add item">
+        <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth={2.6} strokeLinecap="round" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 5v14M5 12h14" />
+        </svg>
+        Add
+      </Link>
     </div>
   );
 }

@@ -8,6 +8,7 @@ export { default as EditItem } from './pages/EditItem';
 // Components
 export { default as ItemsAppLayout } from './components/ItemsAppLayout';
 export { default as ItemsNavbar } from './components/ItemsNavbar';
+export { default as ItemForm } from './components/ItemForm';
 
 // Utils & Types (re-export from centralized API)
 export * from '../../api/items';

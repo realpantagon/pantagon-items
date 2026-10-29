@@ -4,33 +4,36 @@ import { cn } from '../utils/helpers';
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
+  suffix?: string;
 }
 
-export default function Input({ label, error, className, id, ...props }: InputProps) {
-  const inputId = id || (label ? label.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') : undefined);
+export default function Input({ label, error, suffix, className, id, name, ...props }: InputProps) {
+  const inputId = id || name;
 
   return (
     <div style={{ width: '100%' }}>
       {label && (
-        <label
-          htmlFor={inputId}
-          className="hud-label"
-          style={{ display: 'block', marginBottom: '6px' }}
-        >
+        <label htmlFor={inputId} className="ui-field-label">
           {label}
         </label>
       )}
-      <div className="ui-field-shell">
-        <div className="ui-field-rail" style={{ background: error ? 'var(--soft-red)' : 'var(--accent)' }} />
+      <div className="ui-field-shell" data-invalid={error ? 'true' : undefined}>
         <input
           id={inputId}
+          name={name}
           className={cn('ui-input', className)}
           aria-invalid={error ? 'true' : undefined}
+          aria-describedby={error ? `${inputId}-error` : undefined}
           {...props}
         />
+        {suffix && (
+          <span style={{ display: 'flex', alignItems: 'center', paddingRight: '0.9rem', color: 'var(--text-dim)' }}>
+            {suffix}
+          </span>
+        )}
       </div>
       {error && (
-        <p className="ui-error">{error}</p>
+        <p id={`${inputId}-error`} className="ui-error">{error}</p>
       )}
     </div>
   );

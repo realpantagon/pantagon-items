@@ -1,91 +1,69 @@
-import { supabase } from '../../shared/utils/supabase';
 import type { PantagonItem } from './types';
 
+export type ItemInput = Partial<Omit<PantagonItem, 'id' | 'created_at' | 'updated_at'>>;
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(`/api${path}`, {
+    ...init,
+    headers: { 'Content-Type': 'application/json', ...init?.headers },
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null) as { error?: string } | null;
+    throw new Error(body?.error ?? `Request failed (${res.status})`);
+  }
+  return (res.status === 204 ? undefined : await res.json()) as T;
+}
+
+// Last list we saw, so going back to the dashboard paints instantly while it revalidates
+let cachedItems: PantagonItem[] | null = null;
+
+export function getCachedItems(): PantagonItem[] | null {
+  return cachedItems;
+}
+
+export function getCachedItem(id: string): PantagonItem | null {
+  return cachedItems?.find(item => item.id === id) ?? null;
+}
+
+function patchCache(item: PantagonItem | null, removeId?: string) {
+  if (!cachedItems) return;
+  if (removeId) cachedItems = cachedItems.filter(i => i.id !== removeId);
+  if (item) {
+    const exists = cachedItems.some(i => i.id === item.id);
+    cachedItems = exists ? cachedItems.map(i => (i.id === item.id ? item : i)) : [item, ...cachedItems];
+  }
+}
+
 export async function fetchItems(): Promise<PantagonItem[]> {
-  const { data, error } = await supabase
-    .from('Pantagon_items')
-    .select('*')
-    .order('buy_date', { ascending: false });
-
-  if (error) throw error;
-  return data || [];
+  cachedItems = await request<PantagonItem[]>('/items');
+  return cachedItems;
 }
 
-export async function fetchItemById(id: string): Promise<PantagonItem> {
-  const { data, error } = await supabase
-    .from('Pantagon_items')
-    .select('*')
-    .eq('id', id)
-    .single();
-
-  if (error) throw error;
-  return data;
+export function fetchItemById(id: string): Promise<PantagonItem> {
+  return request(`/items/${encodeURIComponent(id)}`);
 }
 
-export async function createItem(item: Omit<PantagonItem, 'id' | 'created_at' | 'updated_at'>): Promise<PantagonItem> {
-  const { data, error } = await supabase
-    .from('Pantagon_items')
-    .insert([item])
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
+export async function createItem(item: ItemInput): Promise<PantagonItem> {
+  const created = await request<PantagonItem>('/items', { method: 'POST', body: JSON.stringify(item) });
+  patchCache(created);
+  return created;
 }
 
-export async function updateItem(id: string, updates: Partial<PantagonItem>): Promise<PantagonItem> {
-  const { data, error } = await supabase
-    .from('Pantagon_items')
-    .update(updates)
-    .eq('id', id)
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
+export async function updateItem(id: string, updates: ItemInput): Promise<PantagonItem> {
+  const updated = await request<PantagonItem>(`/items/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(updates),
+  });
+  patchCache(updated);
+  return updated;
 }
 
 export async function deleteItem(id: string): Promise<void> {
-  const { error } = await supabase
-    .from('Pantagon_items')
-    .delete()
-    .eq('id', id);
-
-  if (error) throw error;
+  await request(`/items/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  patchCache(null, id);
 }
 
-export async function fetchUniqueGroups(): Promise<string[]> {
-  const { data, error } = await supabase
-    .from('Pantagon_items')
-    .select('group_name')
-    .not('group_name', 'is', null);
-
-  if (error) throw error;
-  
-  const uniqueGroups = Array.from(new Set(data.map(item => item.group_name).filter(Boolean))) as string[];
-  return uniqueGroups;
-}
-
-export async function fetchUniqueCategories(): Promise<string[]> {
-  const { data, error } = await supabase
-    .from('Pantagon_items')
-    .select('category')
-    .not('category', 'is', null);
-
-  if (error) throw error;
-  
-  const uniqueCategories = Array.from(new Set(data.map(item => item.category).filter(Boolean))) as string[];
-  return uniqueCategories;
-}
-
-export async function fetchUniquePurchaseSources(): Promise<string[]> {
-  const { data, error } = await supabase
-    .from('Pantagon_items')
-    .select('purchase_source')
-    .not('purchase_source', 'is', null);
-
-  if (error) throw error;
-  
-  const uniqueSources = Array.from(new Set(data.map(item => item.purchase_source).filter(Boolean))) as string[];
-  return uniqueSources;
+export async function fetchAllTags(): Promise<string[]> {
+  const items = cachedItems ?? await fetchItems();
+  return Array.from(new Set(items.flatMap(item => item.tags ?? []).filter(Boolean))).sort();
 }

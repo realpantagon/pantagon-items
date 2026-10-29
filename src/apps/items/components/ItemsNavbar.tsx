@@ -1,77 +1,66 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import ThemeToggle from '../../../shared/components/ThemeToggle';
+import { useGoBack } from '../../../shared/hooks/useGoBack';
 
 export default function ItemsNavbar() {
+  const { pathname } = useLocation();
+  const goBack = useGoBack();
+  const isHome = pathname === '/';
+
   return (
-    <nav
-      style={{
-        background: 'color-mix(in srgb, var(--bg-primary) 78%, transparent)',
-        backdropFilter: 'blur(14px)',
-        WebkitBackdropFilter: 'blur(14px)',
-        borderBottom: '1px solid var(--border-subtle)',
-        position: 'sticky',
-        top: 0,
-        zIndex: 50,
-      }}
-    >
-      <div style={{ maxWidth: '760px', margin: '0 auto', padding: '0.72rem 1rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.85rem' }}>
-          <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>
-            <div
-              style={{
-                width: '36px',
-                height: '36px',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: '14px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: 'var(--bg-elevated)',
-                boxShadow: 'var(--shadow-sm)',
-                position: 'relative',
-                flexShrink: 0,
-                overflow: 'hidden',
-              }}
-            >
-              <img
-                src="/box-red.png"
-                alt="Pantagon logo"
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              />
-            </div>
-
-            <div>
-              <div
-                className="font-display"
-                style={{
-                  fontSize: '1.55rem',
-                  fontWeight: 500,
-                  letterSpacing: '0.01em',
-                  color: 'var(--text-primary)',
-                  lineHeight: 1,
-                }}
-              >
-                Pantagon Items
-              </div>
-              <div
-                className="hud-label"
-                style={{ marginTop: '0.25rem', letterSpacing: '0.13em', fontSize: '0.58rem' }}
-              >
-                Asset registry
-              </div>
-            </div>
+    <header className="top-bar">
+      <div
+        style={{
+          maxWidth: '480px',
+          margin: '0 auto',
+          height: '52px',
+          padding: '0 var(--gutter)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '12px',
+        }}
+      >
+        {isHome ? (
+          <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+            <img
+              src="/box-red.png"
+              alt=""
+              width={32}
+              height={32}
+              style={{ borderRadius: '9px', border: '1px solid var(--border-subtle)', flexShrink: 0 }}
+            />
+            <span style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '0.01em' }}>
+              Pantagon Items
+            </span>
           </Link>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', flexShrink: 0 }}>
-            <Link to="/new" className="nav-action" aria-label="Add new item" title="Add new item">
-              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M12 5v14m-7-7h14" />
-              </svg>
-            </Link>
-            <ThemeToggle />
-          </div>
-        </div>
+        ) : (
+          <button
+            type="button"
+            onClick={goBack}
+            className="pressable"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '2px',
+              height: '44px',
+              margin: '0 0 0 -8px',
+              padding: '0 8px',
+              background: 'none',
+              border: 'none',
+              color: 'var(--accent)',
+              fontSize: '1.05rem',
+              fontWeight: 500,
+            }}
+          >
+            <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M15 5l-7 7 7 7" />
+            </svg>
+            Back
+          </button>
+        )}
+        <ThemeToggle />
       </div>
-    </nav>
+    </header>
   );
 }
