@@ -4,6 +4,9 @@ main = "worker/index.ts"
 compatibility_date = "2025-12-01"
 account_id = "b76e4b50bfd52760bbbfec7ff7fc89c0"
 
+# Production hostname (previously on the old Pages project)
+routes = [{ pattern = "items.pantagon.org", custom_domain = true }]
+
 [assets]
 directory = "./dist"
 binding = "ASSETS"
