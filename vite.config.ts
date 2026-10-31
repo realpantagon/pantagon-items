@@ -10,8 +10,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['box-red.png'],
       manifest: {
-        name: 'Pantagon Items',
-        short_name: 'Pantagon',
+        name: 'Items',
+        short_name: 'Items',
         description: 'Track your items, costs, and daily burn rate',
         theme_color: '#08090d',
         background_color: '#08090d',

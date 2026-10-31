@@ -1,4 +1,4 @@
-# Pantagon Items
+# Items
 
 Personal asset tracker (PWA) built for iPhone 15 Pro Max, portrait only. Tracks what you bought, extra costs over time, daily burn rate and profit when you sell.
 

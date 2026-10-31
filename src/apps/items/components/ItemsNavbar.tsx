@@ -31,7 +31,7 @@ export default function ItemsNavbar() {
               style={{ borderRadius: '9px', border: '1px solid var(--border-subtle)', flexShrink: 0 }}
             />
             <span style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '0.01em' }}>
-              Pantagon Items
+              Items
             </span>
           </Link>
         ) : (
