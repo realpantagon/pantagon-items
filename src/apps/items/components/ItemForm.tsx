@@ -1,7 +1,8 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { format } from 'date-fns';
 import { getCachedItems, type ItemInput } from '../../../api/items/api';
 import type { PantagonItem } from '../../../api/items/types';
+import ActionBar from '../../../shared/components/ActionBar';
 import Button from '../../../shared/components/Button';
 import Input from '../../../shared/components/Input';
 import StarRating from '../../../shared/components/StarRating';
@@ -47,6 +48,7 @@ function AutoGrowTextarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElemen
 }
 
 export default function ItemForm({ title, submitLabel, initial, onSubmit }: ItemFormProps) {
+  const formId = useId();
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -135,7 +137,7 @@ export default function ItemForm({ title, submitLabel, initial, onSubmit }: Item
   };
 
   return (
-    <form onSubmit={handleSubmit} noValidate style={{ animation: 'fade-up 0.3s var(--ease-out) both' }}>
+    <form id={formId} onSubmit={handleSubmit} noValidate style={{ animation: 'fade-up 0.3s var(--ease-out) both' }}>
       <h1 style={{ margin: '6px 0 18px', fontSize: '1.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>{title}</h1>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -254,12 +256,12 @@ export default function ItemForm({ title, submitLabel, initial, onSubmit }: Item
         </section>
       </div>
 
-      <div className="action-bar" style={{ flexDirection: 'column', gap: '6px' }}>
+      <ActionBar stacked>
         {submitError && <p role="alert" className="ui-error" style={{ margin: 0, textAlign: 'center' }}>{submitError}</p>}
-        <Button type="submit" variant="primary" size="lg" disabled={saving} style={{ width: '100%' }}>
+        <Button type="submit" form={formId} variant="primary" size="lg" disabled={saving} style={{ width: '100%' }}>
           {saving ? <span className="spinner" /> : submitLabel}
         </Button>
-      </div>
+      </ActionBar>
     </form>
   );
 }
