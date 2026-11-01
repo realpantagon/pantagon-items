@@ -83,13 +83,22 @@ export default function ExtraCostEditor({ value, onChange }: ExtraCostEditorProp
                     aria-label="ราคา"
                     className="ui-input xcost-input xcost-input--amount xcost-amount num"
                   />
-                  <input
-                    type="date"
-                    value={row.date}
-                    onChange={e => updateRow(row.id, { date: e.target.value })}
-                    aria-label="วันที่"
-                    className="ui-input xcost-input xcost-date"
-                  />
+                  {/* Native picker underneath, our own "1 Nov 2026" label on top: iOS renders the
+                      native value with the device calendar ("1 Nov BE 2569") and wraps it in a narrow box */}
+                  <label className="xcost-input xcost-date xcost-date-field">
+                    <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" aria-hidden="true">
+                      <rect x="3.5" y="5" width="17" height="15" rx="2.5" />
+                      <path d="M3.5 10h17M8 3v4M16 3v4" />
+                    </svg>
+                    <span className="num">{row.date ? format(parseISO(row.date), 'd MMM yyyy') : 'วันที่'}</span>
+                    <input
+                      type="date"
+                      value={row.date}
+                      onChange={e => e.target.value && updateRow(row.id, { date: e.target.value })}
+                      aria-label="วันที่"
+                      className="xcost-date-field__native"
+                    />
+                  </label>
                   <div className="xcost-actions">
                     <button type="button" className="ui-button ui-button--ghost ui-button--sm" onClick={() => removeRow(row.id)}>
                       ลบ

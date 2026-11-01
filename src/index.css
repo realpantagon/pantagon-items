@@ -566,6 +566,14 @@ textarea::placeholder { color: var(--text-dim); }
   border-top: 1px solid var(--border-subtle);
 }
 
+/* Tucked away while the on-screen keyboard is up: iOS keeps fixed elements on the
+   layout viewport, so the bar would otherwise ride up and down behind the keyboard */
+.action-bar--hidden {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
 .action-bar__inner {
   display: flex;
   gap: 10px;
@@ -697,7 +705,7 @@ body:has(> .action-bar) .page {
 .xcost-row + .xcost-row { border-top: 1px solid var(--border-subtle); }
 
 .xcost-row--editing {
-  grid-template-columns: minmax(0, 1fr) 120px;
+  grid-template-columns: minmax(0, 1fr) auto;
   grid-template-areas:
     'label   label'
     'amount  date'
@@ -718,7 +726,44 @@ body:has(> .action-bar) .page {
   background: var(--bg-primary);
 }
 
+.xcost-input.ui-input { min-height: 44px; }
+
 .xcost-input--amount { text-align: right; }
+
+.xcost-date-field {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 14px;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.xcost-date-field svg { color: var(--text-dim); flex-shrink: 0; }
+
+.xcost-date-field:focus-within {
+  outline: 2px solid color-mix(in srgb, var(--accent) 70%, white);
+  outline-offset: 2px;
+}
+
+/* Invisible native input stretched over the label so a tap opens the system picker */
+.xcost-date-field__native {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
 
 .xcost-text {
   min-width: 0;
