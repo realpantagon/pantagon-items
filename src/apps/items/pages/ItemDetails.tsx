@@ -5,6 +5,7 @@ import { deleteItem, fetchItemById, getCachedItem, updateItem } from '../../../a
 import type { PantagonItem } from '../../../api/items/types';
 import { enrichItemWithMetrics, formatCurrency } from '../../../api/items/calculations';
 import { tagChipStyle } from '../utils/tagColor';
+import ActionBar from '../../../shared/components/ActionBar';
 import Button from '../../../shared/components/Button';
 import Sheet from '../../../shared/components/Sheet';
 import StarRating from '../../../shared/components/StarRating';
@@ -207,7 +208,7 @@ export default function ItemDetails() {
         Added {format(new Date(item.created_at), 'd MMM yyyy HH:mm')} · Updated {format(new Date(item.updated_at), 'd MMM yyyy HH:mm')}
       </p>
 
-      <div className="action-bar">
+      <ActionBar>
         <Button onClick={() => navigate(`/${item.id}/edit`)} variant="primary" size="lg" style={{ flex: 1 }}>
           Edit item
         </Button>
@@ -222,7 +223,7 @@ export default function ItemDetails() {
             <path d="M5 7h14M10 11v6M14 11v6M6 7l1 12a2 2 0 002 2h6a2 2 0 002-2l1-12M9.5 7V5a1 1 0 011-1h3a1 1 0 011 1v2" />
           </svg>
         </Button>
-      </div>
+      </ActionBar>
 
       <Sheet open={deleteOpen} onClose={() => !deleting && setDeleteOpen(false)} title={`Delete “${item.name}”?`}>
         <p style={{ margin: '0 0 18px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
